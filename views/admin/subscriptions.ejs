@@ -1,0 +1,623 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Subscriptions Management | Admin Dashboard</title>
+  <link rel="stylesheet" href="/css/styles.css">
+  <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
+  <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.1/font/bootstrap-icons.css">
+</head>
+<body>
+  <%- include('./partials/header') %>
+
+  <div class="container-fluid">
+    <div class="row">
+      <%- include('./partials/sidebar') %>
+      
+      <main class="col-md-9 ms-sm-auto col-lg-10 px-md-4 py-4">
+        <div class="d-flex justify-content-between flex-wrap flex-md-nowrap align-items-center pt-3 pb-2 mb-3 border-bottom">
+          <h1 class="h2">Subscriptions Management</h1>
+          <div class="btn-toolbar mb-2 mb-md-0">
+            <button type="button" class="btn btn-sm btn-outline-primary me-2" id="export-csv">
+              <i class="bi bi-file-earmark-arrow-down"></i> Export CSV
+            </button>
+            <button type="button" class="btn btn-sm btn-primary" data-bs-toggle="modal" data-bs-target="#sendNewsletterModal">
+              <i class="bi bi-envelope"></i> Send Newsletter
+            </button>
+          </div>
+        </div>
+        
+        <div class="card mb-4">
+          <div class="card-header">
+            <ul class="nav nav-tabs card-header-tabs">
+              <li class="nav-item">
+                <a class="nav-link active" id="all-tab" data-bs-toggle="tab" href="#all">All Subscribers</a>
+              </li>
+              <li class="nav-item">
+                <a class="nav-link" id="daily-tab" data-bs-toggle="tab" href="#daily">Daily</a>
+              </li>
+              <li class="nav-item">
+                <a class="nav-link" id="weekly-tab" data-bs-toggle="tab" href="#weekly">Weekly</a>
+              </li>
+              <li class="nav-item">
+                <a class="nav-link" id="monthly-tab" data-bs-toggle="tab" href="#monthly">Monthly</a>
+              </li>
+            </ul>
+          </div>
+          <div class="card-body">
+            <div class="tab-content">
+              <div class="tab-pane fade show active" id="all">
+                <div class="table-responsive">
+                  <table class="table table-striped table-hover">
+                    <thead>
+                      <tr>
+                        <th>#</th>
+                        <th>Email</th>
+                        <th>Frequency</th>
+                        <th>User</th>
+                        <th>Subscribed On</th>
+                        <th>Last Sent</th>
+                        <th>Status</th>
+                        <th>Actions</th>
+                      </tr>
+                    </thead>
+                    <tbody id="subscriptions-list">
+                      <tr>
+                        <td colspan="8" class="text-center py-4">
+                          <div class="spinner-border text-primary" role="status">
+                            <span class="visually-hidden">Loading...</span>
+                          </div>
+                        </td>
+                      </tr>
+                    </tbody>
+                  </table>
+                </div>
+                
+                <div class="d-flex justify-content-between align-items-center mt-3">
+                  <div class="pagination-info">
+                    Showing <span id="page-start">1</span> to <span id="page-end">10</span> of <span id="total-items">0</span> subscriptions
+                  </div>
+                  <nav aria-label="Page navigation">
+                    <ul class="pagination" id="pagination">
+                      <li class="page-item disabled">
+                        <a class="page-link" href="#" aria-label="Previous">
+                          <span aria-hidden="true">&laquo;</span>
+                        </a>
+                      </li>
+                      <li class="page-item active"><a class="page-link" href="#">1</a></li>
+                      <li class="page-item disabled">
+                        <a class="page-link" href="#" aria-label="Next">
+                          <span aria-hidden="true">&raquo;</span>
+                        </a>
+                      </li>
+                    </ul>
+                  </nav>
+                </div>
+              </div>
+              
+              <div class="tab-pane fade" id="daily">
+                <div class="table-responsive">
+                  <table class="table table-striped table-hover">
+                    <thead>
+                      <tr>
+                        <th>#</th>
+                        <th>Email</th>
+                        <th>User</th>
+                        <th>Subscribed On</th>
+                        <th>Last Sent</th>
+                        <th>Status</th>
+                        <th>Actions</th>
+                      </tr>
+                    </thead>
+                    <tbody id="daily-list">
+                      <tr>
+                        <td colspan="7" class="text-center py-4">
+                          <div class="spinner-border text-primary" role="status">
+                            <span class="visually-hidden">Loading...</span>
+                          </div>
+                        </td>
+                      </tr>
+                    </tbody>
+                  </table>
+                </div>
+              </div>
+              
+              <div class="tab-pane fade" id="weekly">
+                <div class="table-responsive">
+                  <table class="table table-striped table-hover">
+                    <thead>
+                      <tr>
+                        <th>#</th>
+                        <th>Email</th>
+                        <th>User</th>
+                        <th>Subscribed On</th>
+                        <th>Last Sent</th>
+                        <th>Status</th>
+                        <th>Actions</th>
+                      </tr>
+                    </thead>
+                    <tbody id="weekly-list">
+                      <tr>
+                        <td colspan="7" class="text-center py-4">
+                          <div class="spinner-border text-primary" role="status">
+                            <span class="visually-hidden">Loading...</span>
+                          </div>
+                        </td>
+                      </tr>
+                    </tbody>
+                  </table>
+                </div>
+              </div>
+              
+              <div class="tab-pane fade" id="monthly">
+                <div class="table-responsive">
+                  <table class="table table-striped table-hover">
+                    <thead>
+                      <tr>
+                        <th>#</th>
+                        <th>Email</th>
+                        <th>User</th>
+                        <th>Subscribed On</th>
+                        <th>Last Sent</th>
+                        <th>Status</th>
+                        <th>Actions</th>
+                      </tr>
+                    </thead>
+                    <tbody id="monthly-list">
+                      <tr>
+                        <td colspan="7" class="text-center py-4">
+                          <div class="spinner-border text-primary" role="status">
+                            <span class="visually-hidden">Loading...</span>
+                          </div>
+                        </td>
+                      </tr>
+                    </tbody>
+                  </table>
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
+      </main>
+    </div>
+  </div>
+  
+  <!-- Send Newsletter Modal -->
+  <div class="modal fade" id="sendNewsletterModal" tabindex="-1" aria-labelledby="sendNewsletterModalLabel" aria-hidden="true">
+    <div class="modal-dialog modal-lg">
+      <div class="modal-content">
+        <div class="modal-header">
+          <h5 class="modal-title" id="sendNewsletterModalLabel">Send Newsletter</h5>
+          <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+        </div>
+        <div class="modal-body">
+          <form id="newsletter-form">
+            <div class="mb-3">
+              <label for="newsletter-subject" class="form-label">Subject</label>
+              <input type="text" class="form-control" id="newsletter-subject" placeholder="Enter email subject" required>
+            </div>
+            <div class="mb-3">
+              <label for="newsletter-frequency" class="form-label">Recipients</label>
+              <select class="form-select" id="newsletter-frequency" required>
+                <option value="">Select frequency</option>
+                <option value="daily">Daily subscribers</option>
+                <option value="weekly">Weekly subscribers</option>
+                <option value="monthly">Monthly subscribers</option>
+                <option value="all">All subscribers</option>
+              </select>
+            </div>
+            <div class="mb-3">
+              <label for="newsletter-content" class="form-label">Content</label>
+              <textarea class="form-control" id="newsletter-content" rows="10" placeholder="Write your newsletter content here..." required></textarea>
+              <div class="form-text">You can use HTML for formatting.</div>
+            </div>
+            <div class="form-check mb-3">
+              <input class="form-check-input" type="checkbox" id="include-latest">
+              <label class="form-check-label" for="include-latest">
+                Include latest news articles
+              </label>
+            </div>
+          </form>
+        </div>
+        <div class="modal-footer">
+          <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancel</button>
+          <button type="button" class="btn btn-primary" id="send-newsletter-btn">Send Newsletter</button>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <script>
+    document.addEventListener('DOMContentLoaded', function() {
+      // Load all subscriptions
+      loadSubscriptions(1);
+      
+      // Load frequency-specific subscriptions
+      loadSubscriptionsByFrequency('daily');
+      loadSubscriptionsByFrequency('weekly');
+      loadSubscriptionsByFrequency('monthly');
+      
+      // Handle export CSV button
+      document.getElementById('export-csv').addEventListener('click', function() {
+        exportSubscriptionsCSV();
+      });
+      
+      // Handle send newsletter button
+      document.getElementById('send-newsletter-btn').addEventListener('click', function() {
+        sendNewsletter();
+      });
+    });
+    
+    // Function to load subscriptions with pagination
+    function loadSubscriptions(page = 1, limit = 10) {
+      fetch(`/api/subscriptions?page=${page}&limit=${limit}`)
+        .then(response => response.json())
+        .then(data => {
+          if (data.success) {
+            // Update table
+            renderSubscriptionsTable(data.data, 'subscriptions-list');
+            
+            // Update pagination
+            renderPagination(data.pagination);
+            
+            // Update page info
+            document.getElementById('page-start').textContent = ((page - 1) * limit) + 1;
+            document.getElementById('page-end').textContent = Math.min(page * limit, data.total);
+            document.getElementById('total-items').textContent = data.total;
+          }
+        })
+        .catch(error => {
+          console.error('Error loading subscriptions:', error);
+          document.getElementById('subscriptions-list').innerHTML = `
+            <tr>
+              <td colspan="8" class="text-center text-danger">Error loading subscriptions</td>
+            </tr>
+          `;
+        });
+    }
+    
+    // Function to load subscriptions by frequency
+    function loadSubscriptionsByFrequency(frequency) {
+      fetch(`/api/subscriptions?frequency=${frequency}`)
+        .then(response => response.json())
+        .then(data => {
+          if (data.success) {
+            // Update table
+            renderSubscriptionsTable(data.data, `${frequency}-list`, true);
+          }
+        })
+        .catch(error => {
+          console.error(`Error loading ${frequency} subscriptions:`, error);
+          document.getElementById(`${frequency}-list`).innerHTML = `
+            <tr>
+              <td colspan="7" class="text-center text-danger">Error loading subscriptions</td>
+            </tr>
+          `;
+        });
+    }
+    
+    // Function to render subscriptions table
+    function renderSubscriptionsTable(subscriptions, tableId, isFrequencyTable = false) {
+      const tableBody = document.getElementById(tableId);
+      
+      if (subscriptions.length > 0) {
+        tableBody.innerHTML = '';
+        subscriptions.forEach((subscription, index) => {
+          const createdDate = new Date(subscription.createdAt);
+          const formattedCreatedDate = createdDate.toLocaleDateString('en-US', { 
+            year: 'numeric', 
+            month: 'short', 
+            day: 'numeric' 
+          });
+          
+          const lastSentDate = subscription.lastSentAt ? new Date(subscription.lastSentAt) : null;
+          const formattedLastSentDate = lastSentDate ? lastSentDate.toLocaleDateString('en-US', { 
+            year: 'numeric', 
+            month: 'short', 
+            day: 'numeric' 
+          }) : 'Never';
+          
+          const username = subscription.user ? subscription.user.username : 'Guest';
+          
+          // Frequency column (only for all subscriptions table)
+          const frequencyColumn = !isFrequencyTable ? `
+            <td>
+              <span class="badge ${getBadgeClass(subscription.preferences.frequency)}">
+                ${subscription.preferences.frequency || 'Weekly'}
+              </span>
+            </td>
+          ` : '';
+          
+          tableBody.innerHTML += `
+            <tr>
+              <td>${index + 1}</td>
+              <td>${subscription.email}</td>
+              ${frequencyColumn}
+              <td>${username}</td>
+              <td>${formattedCreatedDate}</td>
+              <td>${formattedLastSentDate}</td>
+              <td>
+                <span class="badge ${subscription.isActive ? 'bg-success' : 'bg-danger'}">
+                  ${subscription.isActive ? 'Active' : 'Inactive'}
+                </span>
+              </td>
+              <td>
+                <div class="btn-group btn-group-sm" role="group">
+                  <button class="btn btn-outline-primary send-btn" data-id="${subscription._id}">
+                    <i class="bi bi-envelope"></i>
+                  </button>
+                  <button class="btn btn-outline-${subscription.isActive ? 'warning' : 'success'} toggle-btn" 
+                          data-id="${subscription._id}" data-active="${subscription.isActive}">
+                    <i class="bi bi-${subscription.isActive ? 'pause' : 'play'}"></i>
+                  </button>
+                  <button class="btn btn-outline-danger delete-btn" data-id="${subscription._id}">
+                    <i class="bi bi-trash"></i>
+                  </button>
+                </div>
+              </td>
+            </tr>
+          `;
+        });
+        
+        // Setup action buttons
+        setupActionButtons();
+      } else {
+        const colSpan = isFrequencyTable ? 7 : 8;
+        tableBody.innerHTML = `
+          <tr>
+            <td colspan="${colSpan}" class="text-center">No subscriptions found</td>
+          </tr>
+        `;
+      }
+    }
+    
+    // Function to render pagination
+    function renderPagination(pagination) {
+      const paginationContainer = document.getElementById('pagination');
+      
+      if (pagination && pagination.pages > 0) {
+        let html = `
+          <li class="page-item ${pagination.page === 1 ? 'disabled' : ''}">
+            <a class="page-link" href="#" data-page="${pagination.page - 1}" aria-label="Previous">
+              <span aria-hidden="true">&laquo;</span>
+            </a>
+          </li>
+        `;
+        
+        for (let i = 1; i <= pagination.pages; i++) {
+          html += `
+            <li class="page-item ${pagination.page === i ? 'active' : ''}">
+              <a class="page-link" href="#" data-page="${i}">${i}</a>
+            </li>
+          `;
+        }
+        
+        html += `
+          <li class="page-item ${pagination.page === pagination.pages ? 'disabled' : ''}">
+            <a class="page-link" href="#" data-page="${pagination.page + 1}" aria-label="Next">
+              <span aria-hidden="true">&raquo;</span>
+            </a>
+          </li>
+        `;
+        
+        paginationContainer.innerHTML = html;
+        
+        // Add event listeners to pagination links
+        document.querySelectorAll('.page-link').forEach(link => {
+          link.addEventListener('click', function(e) {
+            e.preventDefault();
+            
+            const page = parseInt(this.dataset.page);
+            
+            if (page && !isNaN(page)) {
+              loadSubscriptions(page);
+            }
+          });
+        });
+      } else {
+        paginationContainer.innerHTML = `
+          <li class="page-item disabled">
+            <a class="page-link" href="#" aria-label="Previous">
+              <span aria-hidden="true">&laquo;</span>
+            </a>
+          </li>
+          <li class="page-item active"><a class="page-link" href="#">1</a></li>
+          <li class="page-item disabled">
+            <a class="page-link" href="#" aria-label="Next">
+              <span aria-hidden="true">&raquo;</span>
+            </a>
+          </li>
+        `;
+      }
+    }
+    
+    // Helper function to get badge class by frequency
+    function getBadgeClass(frequency) {
+      switch (frequency) {
+        case 'daily':
+          return 'bg-danger';
+        case 'weekly':
+          return 'bg-primary';
+        case 'monthly':
+          return 'bg-info';
+        default:
+          return 'bg-secondary';
+      }
+    }
+    
+    // Setup action buttons
+    function setupActionButtons() {
+      // Send email button
+      document.querySelectorAll('.send-btn').forEach(btn => {
+        btn.addEventListener('click', function() {
+          const subscriptionId = this.dataset.id;
+          
+          if (confirm('Send a test newsletter to this subscriber?')) {
+            fetch(`/api/subscriptions/${subscriptionId}/send`, {
+              method: 'POST'
+            })
+              .then(response => response.json())
+              .then(data => {
+                if (data.success) {
+                  alert('Newsletter sent successfully!');
+                } else {
+                  alert('Error sending newsletter: ' + data.message);
+                }
+              })
+              .catch(error => {
+                console.error('Error sending newsletter:', error);
+                alert('Error sending newsletter: ' + error.message);
+              });
+          }
+        });
+      });
+      
+      // Toggle active status button
+      document.querySelectorAll('.toggle-btn').forEach(btn => {
+        btn.addEventListener('click', function() {
+          const subscriptionId = this.dataset.id;
+          const isActive = this.dataset.active === 'true';
+          
+          fetch(`/api/subscriptions/${subscriptionId}`, {
+            method: 'PUT',
+            headers: {
+              'Content-Type': 'application/json'
+            },
+            body: JSON.stringify({
+              isActive: !isActive
+            })
+          })
+            .then(response => response.json())
+            .then(data => {
+              if (data.success) {
+                // Reload the current view
+                const activeTab = document.querySelector('.nav-link.active');
+                if (activeTab.id === 'all-tab') {
+                  loadSubscriptions();
+                } else if (activeTab.id === 'daily-tab') {
+                  loadSubscriptionsByFrequency('daily');
+                } else if (activeTab.id === 'weekly-tab') {
+                  loadSubscriptionsByFrequency('weekly');
+                } else if (activeTab.id === 'monthly-tab') {
+                  loadSubscriptionsByFrequency('monthly');
+                }
+              } else {
+                alert('Error updating subscription: ' + data.message);
+              }
+            })
+            .catch(error => {
+              console.error('Error updating subscription:', error);
+              alert('Error updating subscription: ' + error.message);
+            });
+        });
+      });
+      
+      // Delete button
+      document.querySelectorAll('.delete-btn').forEach(btn => {
+        btn.addEventListener('click', function() {
+          const subscriptionId = this.dataset.id;
+          
+          if (confirm('Are you sure you want to delete this subscription? This action cannot be undone.')) {
+            fetch(`/api/subscriptions/${subscriptionId}`, {
+              method: 'DELETE'
+            })
+              .then(response => response.json())
+              .then(data => {
+                if (data.success) {
+                  // Reload the current view
+                  const activeTab = document.querySelector('.nav-link.active');
+                  if (activeTab.id === 'all-tab') {
+                    loadSubscriptions();
+                  } else if (activeTab.id === 'daily-tab') {
+                    loadSubscriptionsByFrequency('daily');
+                  } else if (activeTab.id === 'weekly-tab') {
+                    loadSubscriptionsByFrequency('weekly');
+                  } else if (activeTab.id === 'monthly-tab') {
+                    loadSubscriptionsByFrequency('monthly');
+                  }
+                } else {
+                  alert('Error deleting subscription: ' + data.message);
+                }
+              })
+              .catch(error => {
+                console.error('Error deleting subscription:', error);
+                alert('Error deleting subscription: ' + error.message);
+              });
+          }
+        });
+      });
+    }
+    
+    // Function to export subscriptions as CSV
+    function exportSubscriptionsCSV() {
+      fetch('/api/subscriptions/export')
+        .then(response => {
+          if (!response.ok) {
+            throw new Error('Network response was not ok');
+          }
+          return response.blob();
+        })
+        .then(blob => {
+          const url = window.URL.createObjectURL(blob);
+          const a = document.createElement('a');
+          a.style.display = 'none';
+          a.href = url;
+          a.download = 'khelkud-nepal-subscribers.csv';
+          document.body.appendChild(a);
+          a.click();
+          window.URL.revokeObjectURL(url);
+        })
+        .catch(error => {
+          console.error('Error exporting subscriptions:', error);
+          alert('Error exporting subscriptions: ' + error.message);
+        });
+    }
+    
+    // Function to send newsletter
+    function sendNewsletter() {
+      const subject = document.getElementById('newsletter-subject').value;
+      const frequency = document.getElementById('newsletter-frequency').value;
+      const content = document.getElementById('newsletter-content').value;
+      const includeLatest = document.getElementById('include-latest').checked;
+      
+      if (!subject || !frequency || !content) {
+        alert('Please fill in all required fields.');
+        return;
+      }
+      
+      fetch('/api/subscriptions/send-newsletter', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json'
+        },
+        body: JSON.stringify({
+          subject,
+          frequency,
+          content,
+          includeLatest
+        })
+      })
+        .then(response => response.json())
+        .then(data => {
+          if (data.success) {
+            alert('Newsletter sent successfully!');
+            // Close modal and reset form
+            const modal = bootstrap.Modal.getInstance(document.getElementById('sendNewsletterModal'));
+            modal.hide();
+            document.getElementById('newsletter-form').reset();
+          } else {
+            alert('Error sending newsletter: ' + data.message);
+          }
+        })
+        .catch(error => {
+          console.error('Error sending newsletter:', error);
+          alert('Error sending newsletter: ' + error.message);
+        });
+    }
+  </script>
+
+  <%- include('./partials/footer') %>
+  <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
+</body>
+</html> 

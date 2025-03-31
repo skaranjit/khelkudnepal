@@ -1,0 +1,213 @@
+const express = require('express');
+const mongoose = require('mongoose');
+const session = require('express-session');
+const path = require('path');
+const cors = require('cors');
+const dotenv = require('dotenv');
+const fileUpload = require('express-fileupload');
+
+// Load environment variables
+dotenv.config();
+
+// Initialize app
+const app = express();
+
+// Middleware
+app.use(cors());
+app.use(express.json());
+app.use(express.urlencoded({ extended: true }));
+app.use(express.static(path.join(__dirname, 'public')));
+
+// File upload middleware
+app.use(fileUpload({
+  limits: { fileSize: 5 * 1024 * 1024 }, // 5MB max file size
+  createParentPath: true,
+  useTempFiles: true,
+  tempFileDir: '/tmp/'
+}));
+
+// Set up session
+app.use(session({
+  secret: process.env.SESSION_SECRET || 'khelkud-nepal-secret',
+  resave: false,
+  saveUninitialized: true,
+  cookie: { 
+    maxAge: 86400000, // 24 hours
+    httpOnly: true
+  }
+}));
+
+// Global middleware to make user data available to all views
+app.use((req, res, next) => {
+  res.locals.user = req.session.user || null;
+  next();
+});
+
+// Global middleware to load settings and make them available to all views
+app.use(async (req, res, next) => {
+  try {
+    const Settings = require('./models/Settings');
+    const settings = await Settings.getSettings();
+    res.locals.settings = settings;
+    next();
+  } catch (error) {
+    console.error('Error loading settings:', error);
+    res.locals.settings = null;
+    next();
+  }
+});
+
+// View engine
+app.set('view engine', 'ejs');
+app.set('views', path.join(__dirname, 'views'));
+
+// Routes
+const newsRoutes = require('./routes/news');
+const authRoutes = require('./routes/auth');
+const adminRoutes = require('./routes/admin');
+const subscriptionRoutes = require('./routes/subscription');
+const userRoutes = require('./routes/user');
+const viewRoutes = require('./routes/viewRoutes');
+const commentRoutes = require('./routes/commentRoutes');
+const settingsRoutes = require('./routes/settings');
+
+app.use('/api/news', newsRoutes);
+app.use('/api/auth', authRoutes);
+app.use('/admin', adminRoutes);
+app.use('/api/subscriptions', subscriptionRoutes);
+app.use('/api/users', userRoutes);
+app.use('/', viewRoutes); // Main view routes
+app.use('/api/comments', commentRoutes);
+app.use('/api/settings', settingsRoutes);
+
+// Home route
+app.get('/', (req, res) => {
+  res.render('index');
+});
+
+// Auth routes
+app.get('/login', (req, res) => {
+  res.render('user/login', { title: 'Login' });
+});
+
+app.get('/register', (req, res) => {
+  res.render('user/register', { title: 'Register' });
+});
+
+// Category pages
+app.get('/category/:category', (req, res) => {
+  const category = req.params.category;
+  res.render('category', { 
+    title: `${category.charAt(0).toUpperCase() + category.slice(1)} News`,
+    category: category
+  });
+});
+
+// Latest and trending pages
+app.get('/latest', (req, res) => {
+  res.render('latest', { title: 'Latest News' });
+});
+
+app.get('/trending', (req, res) => {
+  res.render('trending', { title: 'Trending News' });
+});
+
+// Search page
+app.get('/search', (req, res) => {
+  const query = req.query.q || '';
+  res.render('search', { 
+    title: `Search Results: ${query}`,
+    query: query
+  });
+});
+
+// Database connection
+const username = encodeURIComponent(process.env.MONGO_USERNAME || "screamindeath");
+const password = encodeURIComponent(process.env.MONGO_PASSWORD || "Asdlkj12!@");
+const cluster = process.env.MONGO_CLUSTER || "khelkudnepal.avsi6dg.mongodb.net";
+const dbName = "khelkud_nepal";
+
+// Build MongoDB Atlas connection string
+const uri = `mongodb+srv://${username}:${password}@${cluster}/?retryWrites=true&w=majority&appName=khelkudNepal`;
+const localUri = process.env.MONGODB_URI || 'mongodb://localhost:27017/khelkud_nepal';
+
+// MongoDB connection options
+const clientOptions = { 
+  serverApi: { 
+    version: '1', 
+    strict: true, 
+    deprecationErrors: true 
+  }
+};
+
+// Connect to MongoDB
+async function connectToDatabase() {
+  try {
+    console.log('Attempting to connect to MongoDB Atlas...');
+    await mongoose.connect(uri, clientOptions);
+    await mongoose.connection.db.admin().command({ ping: 1 });
+    console.log("Pinged your deployment. You successfully connected to MongoDB Atlas!");
+    
+    // Initialize database with sample data if empty
+    const newsController = require('./controllers/newsController');
+    await newsController.checkAndPopulateNews();
+    
+    return true;
+  } catch (atlasError) {
+    console.error('MongoDB Atlas connection error:', atlasError.message);
+    
+    try {
+      console.log('Attempting to connect to local MongoDB...');
+      await mongoose.connect(localUri);
+      console.log('Connected to local MongoDB successfully');
+      
+      // Initialize database with sample data if empty
+      const newsController = require('./controllers/newsController');
+      await newsController.checkAndPopulateNews();
+      
+      return true;
+    } catch (localError) {
+      console.error('Local MongoDB connection error:', localError.message);
+      console.warn('WARNING: Application running without database - functionality will be limited');
+      return false;
+    }
+  }
+}
+
+// Connect to database before starting server
+connectToDatabase().then(async (connected) => {
+  // Start server first so users can access the site immediately
+  const PORT = process.env.PORT || 3000;
+  const server = app.listen(PORT, () => {
+    console.log(`Server running on port ${PORT}${connected ? ' with database connection' : ' (without database connection)'}`);
+  });
+  
+  // Only proceed with background news scraping if database is connected
+  if (connected) {
+    // Run news seeding in the background
+    setTimeout(async () => {
+      try {
+        const newsController = require('./controllers/newsController');
+        console.log("Starting background news scraping process...");
+        
+        // Use the new background scraping function instead of seedSampleNews
+        await newsController.scheduleBackgroundScraping();
+        
+        console.log("Background news scraping process completed.");
+      } catch (err) {
+        console.error('Error in background news scraping:', err);
+      }
+    }, 3000); // Wait 3 seconds after server start before scraping
+  }
+}).catch(err => {
+  console.error('Failed to initialize database connection:', err);
+  console.log('Starting server without database connection...');
+  
+  // Start server even if database connection fails
+  const PORT = process.env.PORT || 3000;
+  app.listen(PORT, () => {
+    console.log(`Server running on port ${PORT} (without database connection)`);
+  });
+});
+
+module.exports = app; 

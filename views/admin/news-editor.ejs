@@ -1,0 +1,280 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title><%= mode === 'create' ? 'Create New Article' : 'Edit Article' %> | Admin Dashboard</title>
+  <link rel="stylesheet" href="/css/styles.css">
+  <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
+  <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.1/font/bootstrap-icons.css">
+</head>
+<body>
+  <%- include('./partials/header') %>
+
+  <div class="container-fluid">
+    <div class="row">
+      <%- include('./partials/sidebar') %>
+      
+      <main class="col-md-9 ms-sm-auto col-lg-10 px-md-4 py-4">
+        <div class="d-flex justify-content-between flex-wrap flex-md-nowrap align-items-center pt-3 pb-2 mb-3 border-bottom">
+          <h1 class="h2"><%= mode === 'create' ? 'Create New Article' : 'Edit Article' %></h1>
+          <div class="btn-toolbar mb-2 mb-md-0">
+            <a href="/admin/news" class="btn btn-sm btn-outline-secondary">
+              <i class="bi bi-arrow-left"></i> Back to News
+            </a>
+          </div>
+        </div>
+        
+        <div class="card mb-4">
+          <div class="card-body">
+            <form id="news-form">
+              <div class="row mb-3">
+                <div class="col-md-8">
+                  <div class="mb-3">
+                    <label for="title" class="form-label">Title</label>
+                    <input type="text" class="form-control" id="title" name="title" maxlength="200" required>
+                  </div>
+                  
+                  <div class="mb-3">
+                    <label for="summary" class="form-label">Summary (max 500 characters)</label>
+                    <textarea class="form-control" id="summary" name="summary" rows="3" maxlength="500" required></textarea>
+                    <div class="form-text">
+                      <span id="summary-chars">0</span>/500 characters
+                    </div>
+                  </div>
+                  
+                  <div class="mb-3">
+                    <label for="content" class="form-label">Content</label>
+                    <textarea class="form-control" id="content" name="content" rows="15" required></textarea>
+                  </div>
+                </div>
+                
+                <div class="col-md-4">
+                  <div class="mb-3">
+                    <label for="category" class="form-label">Category</label>
+                    <select class="form-select" id="category" name="category" required>
+                      <option value="">Select category</option>
+                      <option value="Football">Football</option>
+                      <option value="Cricket">Cricket</option>
+                      <option value="Basketball">Basketball</option>
+                      <option value="Tennis">Tennis</option>
+                      <option value="Volleyball">Volleyball</option>
+                      <option value="Athletics">Athletics</option>
+                      <option value="Olympics">Olympics</option>
+                      <option value="Other">Other</option>
+                    </select>
+                  </div>
+                  
+                  <div class="mb-3">
+                    <label for="imageUrl" class="form-label">Image URL</label>
+                    <input type="url" class="form-control" id="imageUrl" name="imageUrl">
+                    <div class="form-text">Leave empty to use default placeholder image</div>
+                  </div>
+                  
+                  <div class="mb-3 image-preview-container">
+                    <label class="form-label">Image Preview</label>
+                    <div class="image-preview">
+                      <img id="image-preview" src="/images/placeholder.jpg" class="img-fluid rounded" alt="Article image preview">
+                    </div>
+                  </div>
+                  
+                  <div class="mb-3">
+                    <label for="source" class="form-label">Source</label>
+                    <input type="text" class="form-control" id="source" name="source" value="Khelkud Nepal">
+                  </div>
+                  
+                  <div class="mb-3">
+                    <label for="url" class="form-label">Source URL</label>
+                    <input type="url" class="form-control" id="url" name="url">
+                  </div>
+                  
+                  <div class="mb-3">
+                    <label for="tags" class="form-label">Tags</label>
+                    <input type="text" class="form-control" id="tags" name="tags" placeholder="Comma separated tags">
+                    <div class="form-text">Separate tags with commas (e.g. nepal, football, worldcup)</div>
+                  </div>
+                  
+                  <div class="mb-3">
+                    <label class="form-label">Location</label>
+                    <div class="row g-2">
+                      <div class="col-md-6">
+                        <input type="text" class="form-control" id="country" name="country" placeholder="Country" value="Nepal">
+                      </div>
+                      <div class="col-md-6">
+                        <input type="text" class="form-control" id="city" name="city" placeholder="City">
+                      </div>
+                    </div>
+                  </div>
+                  
+                  <div class="form-check mb-3">
+                    <input class="form-check-input" type="checkbox" id="isFeatured" name="isFeatured">
+                    <label class="form-check-label" for="isFeatured">
+                      Featured Article
+                    </label>
+                  </div>
+                </div>
+              </div>
+              
+              <div class="d-flex justify-content-end gap-2">
+                <a href="/admin/news" class="btn btn-secondary">Cancel</a>
+                <button type="submit" class="btn btn-primary">
+                  <%= mode === 'create' ? 'Create Article' : 'Update Article' %>
+                </button>
+              </div>
+            </form>
+          </div>
+        </div>
+      </main>
+    </div>
+  </div>
+
+  <script>
+    document.addEventListener('DOMContentLoaded', function() {
+      const newsForm = document.getElementById('news-form');
+      const summaryField = document.getElementById('summary');
+      const summaryChars = document.getElementById('summary-chars');
+      const imageUrlField = document.getElementById('imageUrl');
+      const imagePreview = document.getElementById('image-preview');
+      
+      // Update character count for summary
+      summaryField.addEventListener('input', function() {
+        summaryChars.textContent = this.value.length;
+      });
+      
+      // Update image preview
+      imageUrlField.addEventListener('input', function() {
+        if (this.value) {
+          imagePreview.src = this.value;
+        } else {
+          imagePreview.src = '/images/placeholder.jpg';
+        }
+      });
+      
+      // Handle image preview errors
+      imagePreview.addEventListener('error', function() {
+        this.src = '/images/placeholder.jpg';
+      });
+      
+      <% if (mode === 'edit' && locals.newsId) { %>
+      // Load article data for editing
+      loadArticle('<%= newsId %>');
+      <% } %>
+      
+      // Handle form submission
+      newsForm.addEventListener('submit', function(e) {
+        e.preventDefault();
+        
+        // Get form data
+        const formData = {
+          title: document.getElementById('title').value,
+          summary: document.getElementById('summary').value,
+          content: document.getElementById('content').value,
+          category: document.getElementById('category').value,
+          imageUrl: document.getElementById('imageUrl').value || undefined,
+          source: document.getElementById('source').value || 'Khelkud Nepal',
+          url: document.getElementById('url').value || undefined,
+          tags: document.getElementById('tags').value.split(',').map(tag => tag.trim()).filter(tag => tag !== ''),
+          location: {
+            country: document.getElementById('country').value || 'Nepal',
+            city: document.getElementById('city').value || undefined
+          },
+          isFeatured: document.getElementById('isFeatured').checked
+        };
+        
+        // Validate required fields
+        if (!formData.title || !formData.summary || !formData.content || !formData.category) {
+          alert('Please fill in all required fields.');
+          return;
+        }
+        
+        <% if (mode === 'create') { %>
+        // Create new article
+        fetch('/api/news', {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/json'
+          },
+          body: JSON.stringify(formData)
+        })
+          .then(response => response.json())
+          .then(data => {
+            if (data.success) {
+              alert('Article created successfully!');
+              window.location.href = '/admin/news';
+            } else {
+              alert('Error creating article: ' + data.message);
+            }
+          })
+          .catch(error => {
+            console.error('Error creating article:', error);
+            alert('Error creating article. Please try again.');
+          });
+        <% } else if (mode === 'edit' && locals.newsId) { %>
+        // Update existing article
+        fetch('/api/news/<%= newsId %>', {
+          method: 'PUT',
+          headers: {
+            'Content-Type': 'application/json'
+          },
+          body: JSON.stringify(formData)
+        })
+          .then(response => response.json())
+          .then(data => {
+            if (data.success) {
+              alert('Article updated successfully!');
+              window.location.href = '/admin/news';
+            } else {
+              alert('Error updating article: ' + data.message);
+            }
+          })
+          .catch(error => {
+            console.error('Error updating article:', error);
+            alert('Error updating article. Please try again.');
+          });
+        <% } %>
+      });
+    });
+    
+    // Function to load article data for editing
+    function loadArticle(id) {
+      fetch(`/api/news/${id}`)
+        .then(response => response.json())
+        .then(data => {
+          if (data.success) {
+            const article = data.data;
+            
+            // Fill form fields
+            document.getElementById('title').value = article.title;
+            document.getElementById('summary').value = article.summary;
+            document.getElementById('content').value = article.content;
+            document.getElementById('category').value = article.category;
+            document.getElementById('imageUrl').value = article.imageUrl !== '/images/placeholder.jpg' ? article.imageUrl : '';
+            document.getElementById('source').value = article.source || 'Khelkud Nepal';
+            document.getElementById('url').value = article.url || '';
+            document.getElementById('tags').value = article.tags ? article.tags.join(', ') : '';
+            document.getElementById('country').value = article.location && article.location.country ? article.location.country : 'Nepal';
+            document.getElementById('city').value = article.location && article.location.city ? article.location.city : '';
+            document.getElementById('isFeatured').checked = article.isFeatured;
+            
+            // Update image preview
+            if (article.imageUrl) {
+              document.getElementById('image-preview').src = article.imageUrl;
+            }
+            
+            // Update summary character count
+            document.getElementById('summary-chars').textContent = article.summary.length;
+          } else {
+            alert('Error loading article: ' + data.message);
+          }
+        })
+        .catch(error => {
+          console.error('Error loading article:', error);
+          alert('Error loading article. Please try again.');
+        });
+    }
+  </script>
+
+  <%- include('./partials/footer') %>
+  <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
+</body>
+</html> 

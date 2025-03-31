@@ -1,0 +1,54 @@
+<%- include('partials/header') %>
+
+<div class="container py-4">
+    <div class="row mb-4">
+        <div class="col">
+            <nav aria-label="breadcrumb">
+                <ol class="breadcrumb">
+                    <li class="breadcrumb-item"><a href="/">Home</a></li>
+                    <li class="breadcrumb-item active" aria-current="page">Categories</li>
+                </ol>
+            </nav>
+            <h1 class="display-5 mb-4">All News Categories</h1>
+        </div>
+    </div>
+
+    <% if (categories && categories.length > 0) { %>
+        <div class="row">
+            <% categories.forEach(function(category) { %>
+                <div class="col-md-6 mb-5">
+                    <div class="card shadow-sm">
+                        <div class="card-header bg-primary text-white">
+                            <h3 class="h4 mb-0"><%= category %></h3>
+                        </div>
+                        <div class="card-body">
+                            <% if (categoryNews[category] && categoryNews[category].length > 0) { %>
+                                <div class="list-group list-group-flush mb-3">
+                                    <% categoryNews[category].slice(0, 3).forEach(function(article) { %>
+                                        <a href="/news/<%= article._id %>" class="list-group-item list-group-item-action">
+                                            <div class="d-flex w-100 justify-content-between">
+                                                <h6 class="mb-1"><%= article.title %></h6>
+                                                <small><%= new Date(article.publishedAt).toLocaleDateString() %></small>
+                                            </div>
+                                            <small class="text-muted"><%= article.summary.substring(0, 80) %>...</small>
+                                        </a>
+                                    <% }); %>
+                                </div>
+                            <% } else { %>
+                                <p class="card-text text-muted">No articles available in this category.</p>
+                            <% } %>
+                            <a href="/category/<%= category.toLowerCase() %>" class="btn btn-outline-primary">View All <%= category %> News</a>
+                        </div>
+                    </div>
+                </div>
+            <% }); %>
+        </div>
+    <% } else { %>
+        <div class="alert alert-info">
+            <i class="bi bi-info-circle me-2"></i>
+            No categories available. Check back later.
+        </div>
+    <% } %>
+</div>
+
+<%- include('partials/footer') %> 

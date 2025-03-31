@@ -1,0 +1,223 @@
+<%- include('../partials/header') %>
+
+<div class="container mt-4 mb-5">
+    <div class="row">
+        <div class="col-12">
+            <nav aria-label="breadcrumb">
+                <ol class="breadcrumb">
+                    <li class="breadcrumb-item"><a href="/">Home</a></li>
+                    <li class="breadcrumb-item active" aria-current="page">My Profile</li>
+                </ol>
+            </nav>
+            <h1 class="mb-4">My Profile</h1>
+        </div>
+    </div>
+
+    <div class="row">
+        <!-- Left sidebar for navigation -->
+        <div class="col-md-3 mb-4">
+            <div class="list-group profile-nav" id="profile-tabs">
+                <a class="list-group-item list-group-item-action active" data-bs-toggle="list" href="#personal-info">
+                    <i class="bi bi-person-circle me-2"></i> Personal Information
+                </a>
+                <a class="list-group-item list-group-item-action" data-bs-toggle="list" href="#preferences">
+                    <i class="bi bi-gear me-2"></i> Preferences
+                </a>
+                <a class="list-group-item list-group-item-action" data-bs-toggle="list" href="#security">
+                    <i class="bi bi-shield-lock me-2"></i> Security
+                </a>
+                <a class="list-group-item list-group-item-action" data-bs-toggle="list" href="#location">
+                    <i class="bi bi-geo-alt me-2"></i> Location
+                </a>
+                <a class="list-group-item list-group-item-action" data-bs-toggle="list" href="#subscriptions">
+                    <i class="bi bi-envelope me-2"></i> Subscriptions
+                </a>
+            </div>
+        </div>
+
+        <!-- Right content area -->
+        <div class="col-md-9">
+            <div class="card">
+                <div class="card-body">
+                    <!-- Alert container for notifications -->
+                    <div id="alertContainer"></div>
+
+                    <!-- Tab content -->
+                    <div class="tab-content">
+                        <!-- Personal Information -->
+                        <div class="tab-pane fade show active" id="personal-info">
+                            <h3 class="card-title mb-4">Personal Information</h3>
+                            <form id="personal-info-form">
+                                <div class="row mb-3">
+                                    <div class="col-md-6">
+                                        <label for="username" class="form-label">Username</label>
+                                        <input type="text" class="form-control" id="username" name="username" readonly>
+                                        <small class="text-muted">Username cannot be changed</small>
+                                    </div>
+                                    <div class="col-md-6">
+                                        <label for="name" class="form-label">Full Name</label>
+                                        <input type="text" class="form-control" id="name" name="name">
+                                    </div>
+                                </div>
+                                <div class="mb-3">
+                                    <label for="email" class="form-label">Email Address</label>
+                                    <input type="email" class="form-control" id="email" name="email">
+                                </div>
+                                <button type="submit" class="btn btn-primary">Save Changes</button>
+                            </form>
+                        </div>
+
+                        <!-- Preferences -->
+                        <div class="tab-pane fade" id="preferences">
+                            <h3 class="card-title mb-4">Sport Preferences</h3>
+                            <form id="preferences-form">
+                                <div class="mb-3">
+                                    <label class="form-label">Favorite Sports</label>
+                                    <div class="row">
+                                        <div class="col-md-4">
+                                            <div class="form-check mb-2">
+                                                <input class="form-check-input" type="checkbox" name="preferences[sports][]" value="Cricket" id="sport-cricket">
+                                                <label class="form-check-label" for="sport-cricket">Cricket</label>
+                                            </div>
+                                            <div class="form-check mb-2">
+                                                <input class="form-check-input" type="checkbox" name="preferences[sports][]" value="Football" id="sport-football">
+                                                <label class="form-check-label" for="sport-football">Football</label>
+                                            </div>
+                                            <div class="form-check mb-2">
+                                                <input class="form-check-input" type="checkbox" name="preferences[sports][]" value="Basketball" id="sport-basketball">
+                                                <label class="form-check-label" for="sport-basketball">Basketball</label>
+                                            </div>
+                                        </div>
+                                        <div class="col-md-4">
+                                            <div class="form-check mb-2">
+                                                <input class="form-check-input" type="checkbox" name="preferences[sports][]" value="Volleyball" id="sport-volleyball">
+                                                <label class="form-check-label" for="sport-volleyball">Volleyball</label>
+                                            </div>
+                                            <div class="form-check mb-2">
+                                                <input class="form-check-input" type="checkbox" name="preferences[sports][]" value="Tennis" id="sport-tennis">
+                                                <label class="form-check-label" for="sport-tennis">Tennis</label>
+                                            </div>
+                                            <div class="form-check mb-2">
+                                                <input class="form-check-input" type="checkbox" name="preferences[sports][]" value="Athletics" id="sport-athletics">
+                                                <label class="form-check-label" for="sport-athletics">Athletics</label>
+                                            </div>
+                                        </div>
+                                        <div class="col-md-4">
+                                            <div class="form-check mb-2">
+                                                <input class="form-check-input" type="checkbox" name="preferences[sports][]" value="Olympics" id="sport-olympics">
+                                                <label class="form-check-label" for="sport-olympics">Olympics</label>
+                                            </div>
+                                            <div class="form-check mb-2">
+                                                <input class="form-check-input" type="checkbox" name="preferences[sports][]" value="Other" id="sport-other">
+                                                <label class="form-check-label" for="sport-other">Other Sports</label>
+                                            </div>
+                                        </div>
+                                    </div>
+                                </div>
+                                <div class="mb-3">
+                                    <label for="teams" class="form-label">Favorite Teams</label>
+                                    <input type="text" class="form-control" id="teams" name="preferences[teams]" placeholder="e.g. Nepal National Cricket Team, Kathmandu Kings">
+                                    <small class="text-muted">Separate multiple teams with commas</small>
+                                </div>
+                                <div class="mb-3">
+                                    <label for="leagues" class="form-label">Favorite Leagues</label>
+                                    <input type="text" class="form-control" id="leagues" name="preferences[leagues]" placeholder="e.g. Nepali Premier League, Everest Premier League">
+                                    <small class="text-muted">Separate multiple leagues with commas</small>
+                                </div>
+                                <button type="submit" class="btn btn-primary">Save Preferences</button>
+                            </form>
+                        </div>
+
+                        <!-- Security -->
+                        <div class="tab-pane fade" id="security">
+                            <h3 class="card-title mb-4">Change Password</h3>
+                            <form id="password-form">
+                                <div class="mb-3">
+                                    <label for="current-password" class="form-label">Current Password</label>
+                                    <input type="password" class="form-control" id="current-password" name="currentPassword" required>
+                                </div>
+                                <div class="mb-3">
+                                    <label for="new-password" class="form-label">New Password</label>
+                                    <input type="password" class="form-control" id="new-password" name="newPassword" required>
+                                    <small class="text-muted">Password must be at least 6 characters long</small>
+                                </div>
+                                <div class="mb-3">
+                                    <label for="confirm-password" class="form-label">Confirm New Password</label>
+                                    <input type="password" class="form-control" id="confirm-password" name="confirmPassword" required>
+                                </div>
+                                <button type="submit" class="btn btn-primary">Update Password</button>
+                            </form>
+                        </div>
+
+                        <!-- Location -->
+                        <div class="tab-pane fade" id="location">
+                            <h3 class="card-title mb-4">Your Location</h3>
+                            <p class="text-muted">Setting your location helps us provide you with localized and relevant sports news.</p>
+                            <form id="location-form">
+                                <div class="row mb-3">
+                                    <div class="col-md-6">
+                                        <label for="country" class="form-label">Country</label>
+                                        <input type="text" class="form-control" id="country" name="location[country]">
+                                    </div>
+                                    <div class="col-md-6">
+                                        <label for="city" class="form-label">City</label>
+                                        <input type="text" class="form-control" id="city" name="location[city]">
+                                    </div>
+                                </div>
+                                <div class="mb-3">
+                                    <button type="button" id="detect-location" class="btn btn-outline-secondary">
+                                        <i class="bi bi-geo-fill me-2"></i> Detect My Location
+                                    </button>
+                                </div>
+                                <button type="submit" class="btn btn-primary">Save Location</button>
+                            </form>
+                        </div>
+
+                        <!-- Subscriptions -->
+                        <div class="tab-pane fade" id="subscriptions">
+                            <h3 class="card-title mb-4">Subscription Preferences</h3>
+                            <form id="subscription-form">
+                                <div class="form-check form-switch mb-3">
+                                    <input class="form-check-input" type="checkbox" role="switch" id="newsletter-subscription" name="isSubscribed">
+                                    <label class="form-check-label" for="newsletter-subscription">Subscribe to newsletter</label>
+                                </div>
+                                
+                                <div id="subscription-options" class="mb-3 border p-3 rounded">
+                                    <p class="mb-3">Receive notifications for:</p>
+                                    <div class="mb-2">
+                                        <div class="form-check">
+                                            <input class="form-check-input" type="checkbox" id="daily-update" name="subscriptionPreferences[dailyUpdate]">
+                                            <label class="form-check-label" for="daily-update">Daily news summary</label>
+                                        </div>
+                                    </div>
+                                    <div class="mb-2">
+                                        <div class="form-check">
+                                            <input class="form-check-input" type="checkbox" id="breaking-news" name="subscriptionPreferences[breakingNews]">
+                                            <label class="form-check-label" for="breaking-news">Breaking news</label>
+                                        </div>
+                                    </div>
+                                    <div class="mb-2">
+                                        <div class="form-check">
+                                            <input class="form-check-input" type="checkbox" id="favorite-sports" name="subscriptionPreferences[favoriteSports]">
+                                            <label class="form-check-label" for="favorite-sports">Updates on favorite sports</label>
+                                        </div>
+                                    </div>
+                                    <div class="mb-2">
+                                        <div class="form-check">
+                                            <input class="form-check-input" type="checkbox" id="local-events" name="subscriptionPreferences[localEvents]">
+                                            <label class="form-check-label" for="local-events">Local sports events</label>
+                                        </div>
+                                    </div>
+                                </div>
+                                <button type="submit" class="btn btn-primary">Save Subscription Preferences</button>
+                            </form>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<script src="/js/user/profile.js"></script>
+<%- include('../partials/footer') %> 

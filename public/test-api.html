@@ -1,0 +1,150 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>API Test Page</title>
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            line-height: 1.6;
+            max-width: 800px;
+            margin: 0 auto;
+            padding: 20px;
+        }
+        h1 {
+            text-align: center;
+            color: #0275d8;
+        }
+        .test-section {
+            margin-bottom: 30px;
+            border: 1px solid #ddd;
+            padding: 15px;
+            border-radius: 5px;
+        }
+        button {
+            background-color: #0275d8;
+            color: white;
+            border: none;
+            padding: 10px 15px;
+            border-radius: 4px;
+            cursor: pointer;
+        }
+        button:hover {
+            background-color: #025aa5;
+        }
+        pre {
+            background-color: #f8f9fa;
+            padding: 15px;
+            border-radius: 4px;
+            overflow-x: auto;
+            max-height: 300px;
+        }
+        .error {
+            color: #dc3545;
+        }
+        .success {
+            color: #28a745;
+        }
+    </style>
+</head>
+<body>
+    <h1>API Test Page</h1>
+    
+    <div class="test-section">
+        <h2>Featured News API Test</h2>
+        <button id="test-featured">Test Featured News API</button>
+        <div id="featured-result">
+            <p>Results will appear here...</p>
+        </div>
+    </div>
+    
+    <div class="test-section">
+        <h2>Latest News API Test</h2>
+        <button id="test-latest">Test Latest News API</button>
+        <div id="latest-result">
+            <p>Results will appear here...</p>
+        </div>
+    </div>
+    
+    <script>
+        document.addEventListener('DOMContentLoaded', function() {
+            // Featured News Test
+            document.getElementById('test-featured').addEventListener('click', function() {
+                const resultDiv = document.getElementById('featured-result');
+                resultDiv.innerHTML = '<p>Testing featured news API...</p>';
+                
+                console.log('Testing featured news API endpoint...');
+                
+                fetch('/api/news/featured')
+                    .then(response => {
+                        console.log('Response status:', response.status);
+                        console.log('Response headers:', response.headers);
+                        return response.json().then(data => ({ status: response.status, data }));
+                    })
+                    .then(({ status, data }) => {
+                        console.log('Response data:', data);
+                        
+                        let html = `<p class="${status === 200 ? 'success' : 'error'}">Status: ${status}</p>`;
+                        
+                        if (data.success && data.data && data.data.length > 0) {
+                            html += `<p class="success">Found ${data.data.length} featured news items</p>`;
+                            html += '<pre>' + JSON.stringify(data.data.map(item => ({
+                                id: item._id,
+                                title: item.title,
+                                isFeatured: item.isFeatured
+                            })), null, 2) + '</pre>';
+                        } else {
+                            html += `<p class="error">No featured news found or API returned error</p>`;
+                            html += '<pre>' + JSON.stringify(data, null, 2) + '</pre>';
+                        }
+                        
+                        resultDiv.innerHTML = html;
+                    })
+                    .catch(error => {
+                        console.error('Error testing featured news API:', error);
+                        resultDiv.innerHTML = `<p class="error">Error: ${error.message}</p>`;
+                    });
+            });
+            
+            // Latest News Test
+            document.getElementById('test-latest').addEventListener('click', function() {
+                const resultDiv = document.getElementById('latest-result');
+                resultDiv.innerHTML = '<p>Testing latest news API...</p>';
+                
+                console.log('Testing latest news API endpoint...');
+                
+                fetch('/api/news/latest?page=1&limit=6')
+                    .then(response => {
+                        console.log('Response status:', response.status);
+                        console.log('Response headers:', response.headers);
+                        return response.json().then(data => ({ status: response.status, data }));
+                    })
+                    .then(({ status, data }) => {
+                        console.log('Response data:', data);
+                        
+                        let html = `<p class="${status === 200 ? 'success' : 'error'}">Status: ${status}</p>`;
+                        
+                        if (data.success && data.data && data.data.length > 0) {
+                            html += `<p class="success">Found ${data.data.length} latest news items</p>`;
+                            html += '<pre>' + JSON.stringify(data.data.map(item => ({
+                                id: item._id,
+                                title: item.title,
+                                publishedAt: item.publishedAt
+                            })), null, 2) + '</pre>';
+                        } else {
+                            html += `<p class="error">No latest news found or API returned error</p>`;
+                            html += '<pre>' + JSON.stringify(data, null, 2) + '</pre>';
+                        }
+                        
+                        resultDiv.innerHTML = html;
+                    })
+                    .catch(error => {
+                        console.error('Error testing latest news API:', error);
+                        resultDiv.innerHTML = `<p class="error">Error: ${error.message}</p>`;
+                    });
+            });
+        });
+    </script>
+</body>
+</html> 
