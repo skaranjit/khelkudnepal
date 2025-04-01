@@ -1,0 +1,1181 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title><%= title %> | Khelkud Nepal</title>
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/css/bootstrap.min.css" rel="stylesheet">
+    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.3/font/bootstrap-icons.min.css">
+    <link rel="stylesheet" href="/css/styles.css">
+    <style>
+        .score-card {
+            border-left: 4px solid #007bff;
+            transition: transform 0.2s;
+        }
+        .score-card:hover {
+            transform: translateY(-3px);
+            box-shadow: 0 5px 15px rgba(0,0,0,0.1);
+        }
+        .score-card.live {
+            border-left-color: #dc3545;
+        }
+        .live-indicator {
+            display: inline-block;
+            width: 10px;
+            height: 10px;
+            background-color: #dc3545;
+            border-radius: 50%;
+            margin-right: 5px;
+            animation: pulse 1.5s infinite;
+        }
+        @keyframes pulse {
+            0% { opacity: 1; }
+            50% { opacity: 0.5; }
+            100% { opacity: 1; }
+        }
+        .nav-tabs .nav-link {
+            color: #495057;
+            font-weight: 500;
+        }
+        .nav-tabs .nav-link.active {
+            color: #007bff;
+            font-weight: 600;
+        }
+        .match-time {
+            font-size: 0.85rem;
+            color: #6c757d;
+        }
+        .score-display {
+            font-weight: bold;
+            font-size: 1.25rem;
+        }
+        .team-name {
+            font-weight: 500;
+        }
+        .vs {
+            color: #adb5bd;
+            font-weight: 300;
+        }
+        .match-status {
+            font-size: 0.8rem;
+            text-transform: uppercase;
+        }
+        .match-venue {
+            font-size: 0.8rem;
+            color: #6c757d;
+        }
+        .tournament-name {
+            font-size: 0.85rem;
+            font-style: italic;
+            color: #495057;
+        }
+        .no-matches {
+            min-height: 200px;
+        }
+        .timeline {
+            position: relative;
+            max-height: 300px;
+            overflow-y: auto;
+            padding-left: 20px;
+            margin-bottom: 15px;
+        }
+        .timeline::before {
+            content: '';
+            position: absolute;
+            left: 7px;
+            top: 5px;
+            height: calc(100% - 10px);
+            width: 2px;
+            background-color: #dee2e6;
+        }
+        .timeline-item {
+            position: relative;
+            margin-bottom: 15px;
+        }
+        .timeline-item.latest .timeline-marker {
+            background-color: #dc3545;
+        }
+        .timeline-item.latest .timeline-content {
+            background-color: rgba(220, 53, 69, 0.05);
+        }
+        .timeline-marker {
+            position: absolute;
+            left: -20px;
+            top: 5px;
+            width: 12px;
+            height: 12px;
+            border-radius: 50%;
+            background-color: #6c757d;
+            z-index: 1;
+        }
+        .timeline-content {
+            border-radius: 4px;
+            padding: 8px 12px;
+            border: 1px solid #dee2e6;
+        }
+        .timeline-time {
+            font-size: 0.8rem;
+            color: #6c757d;
+            margin-bottom: 4px;
+        }
+        .stat-label {
+            font-size: 0.8rem;
+            color: #6c757d;
+        }
+        .stat-value {
+            font-weight: bold;
+        }
+        .score-big {
+            font-size: 2.5rem;
+            font-weight: bold;
+            text-align: center;
+        }
+        .view-details-btn:focus {
+            box-shadow: none;
+        }
+        .fetch-updates-btn {
+            font-size: 0.8rem;
+            padding: 0.25rem 0.5rem;
+        }
+        .fetch-updates-btn.loading {
+            opacity: 0.7;
+            pointer-events: none;
+        }
+        .fetch-updates-btn.loading i {
+            animation: spin 1s linear infinite;
+        }
+        @keyframes spin {
+            0% { transform: rotate(0deg); }
+            100% { transform: rotate(360deg); }
+        }
+    </style>
+</head>
+<body>
+    <%- include('./partials/header') %>
+
+    <div class="container mt-4 mb-5">
+        <h1 class="mb-4">Live Scores</h1>
+        
+        <!-- Sports Categories Tabs -->
+        <ul class="nav nav-tabs mb-4" id="sportsTab" role="tablist">
+            <li class="nav-item" role="presentation">
+                <button class="nav-link active" id="all-tab" data-bs-toggle="tab" data-bs-target="#all" type="button" role="tab" aria-controls="all" aria-selected="true">All Sports</button>
+            </li>
+            <li class="nav-item" role="presentation">
+                <button class="nav-link" id="cricket-tab" data-bs-toggle="tab" data-bs-target="#cricket" type="button" role="tab" aria-controls="cricket" aria-selected="false">Cricket</button>
+            </li>
+            <li class="nav-item" role="presentation">
+                <button class="nav-link" id="football-tab" data-bs-toggle="tab" data-bs-target="#football" type="button" role="tab" aria-controls="football" aria-selected="false">Football</button>
+            </li>
+            <li class="nav-item" role="presentation">
+                <button class="nav-link" id="basketball-tab" data-bs-toggle="tab" data-bs-target="#basketball" type="button" role="tab" aria-controls="basketball" aria-selected="false">Basketball</button>
+            </li>
+            <li class="nav-item" role="presentation">
+                <button class="nav-link" id="volleyball-tab" data-bs-toggle="tab" data-bs-target="#volleyball" type="button" role="tab" aria-controls="volleyball" aria-selected="false">Volleyball</button>
+            </li>
+            <li class="nav-item" role="presentation">
+                <button class="nav-link" id="other-tab" data-bs-toggle="tab" data-bs-target="#other" type="button" role="tab" aria-controls="other" aria-selected="false">Other</button>
+            </li>
+        </ul>
+        
+        <!-- Tab Contents -->
+        <div class="tab-content" id="sportsTabContent">
+            <!-- All Sports Tab -->
+            <div class="tab-pane fade show active" id="all" role="tabpanel" aria-labelledby="all-tab">
+                <div class="row">
+                    <div class="col-lg-12">
+                        <div class="d-flex justify-content-between align-items-center mb-3">
+                            <h3>Live Matches</h3>
+                            <div class="refresh-btn">
+                                <button class="btn btn-sm btn-outline-primary" id="refresh-all-live">
+                                    <i class="bi bi-arrow-clockwise"></i> Refresh
+                                </button>
+                            </div>
+                        </div>
+                        <div id="all-live-matches" class="matches-container">
+                            <div class="text-center py-5 no-matches">
+                                <div class="spinner-border text-primary" role="status">
+                                    <span class="visually-hidden">Loading...</span>
+                                </div>
+                                <p class="mt-3">Loading live matches...</p>
+                            </div>
+                        </div>
+                        
+                        <h3 class="mt-5 mb-3">Upcoming Matches</h3>
+                        <div id="all-upcoming-matches" class="matches-container">
+                            <div class="text-center py-5 no-matches">
+                                <div class="spinner-border text-primary" role="status">
+                                    <span class="visually-hidden">Loading...</span>
+                                </div>
+                                <p class="mt-3">Loading upcoming matches...</p>
+                            </div>
+                        </div>
+                        
+                        <h3 class="mt-5 mb-3">Recent Results</h3>
+                        <div id="all-completed-matches" class="matches-container">
+                            <div class="text-center py-5 no-matches">
+                                <div class="spinner-border text-primary" role="status">
+                                    <span class="visually-hidden">Loading...</span>
+                                </div>
+                                <p class="mt-3">Loading recent results...</p>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+            
+            <!-- Cricket Tab -->
+            <div class="tab-pane fade" id="cricket" role="tabpanel" aria-labelledby="cricket-tab">
+                <div class="row">
+                    <div class="col-lg-12">
+                        <div class="d-flex justify-content-between align-items-center mb-3">
+                            <h3>Live Cricket Matches</h3>
+                            <div class="refresh-btn">
+                                <button class="btn btn-sm btn-outline-primary" id="refresh-cricket-live">
+                                    <i class="bi bi-arrow-clockwise"></i> Refresh
+                                </button>
+                            </div>
+                        </div>
+                        <div id="cricket-live-matches" class="matches-container">
+                            <div class="text-center py-5 no-matches">
+                                <div class="spinner-border text-primary" role="status">
+                                    <span class="visually-hidden">Loading...</span>
+                                </div>
+                                <p class="mt-3">Loading live cricket matches...</p>
+                            </div>
+                        </div>
+                        
+                        <h3 class="mt-5 mb-3">Upcoming Cricket Matches</h3>
+                        <div id="cricket-upcoming-matches" class="matches-container">
+                            <div class="text-center py-5 no-matches">
+                                <div class="spinner-border text-primary" role="status">
+                                    <span class="visually-hidden">Loading...</span>
+                                </div>
+                                <p class="mt-3">Loading upcoming cricket matches...</p>
+                            </div>
+                        </div>
+                        
+                        <h3 class="mt-5 mb-3">Recent Cricket Results</h3>
+                        <div id="cricket-completed-matches" class="matches-container">
+                            <div class="text-center py-5 no-matches">
+                                <div class="spinner-border text-primary" role="status">
+                                    <span class="visually-hidden">Loading...</span>
+                                </div>
+                                <p class="mt-3">Loading recent cricket results...</p>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+            
+            <!-- Football Tab -->
+            <div class="tab-pane fade" id="football" role="tabpanel" aria-labelledby="football-tab">
+                <div class="row">
+                    <div class="col-lg-12">
+                        <div class="d-flex justify-content-between align-items-center mb-3">
+                            <h3>Live Football Matches</h3>
+                            <div class="refresh-btn">
+                                <button class="btn btn-sm btn-outline-primary" id="refresh-football-live">
+                                    <i class="bi bi-arrow-clockwise"></i> Refresh
+                                </button>
+                            </div>
+                        </div>
+                        <div id="football-live-matches" class="matches-container">
+                            <div class="text-center py-5 no-matches">
+                                <div class="spinner-border text-primary" role="status">
+                                    <span class="visually-hidden">Loading...</span>
+                                </div>
+                                <p class="mt-3">Loading live football matches...</p>
+                            </div>
+                        </div>
+                        
+                        <h3 class="mt-5 mb-3">Upcoming Football Matches</h3>
+                        <div id="football-upcoming-matches" class="matches-container">
+                            <div class="text-center py-5 no-matches">
+                                <div class="spinner-border text-primary" role="status">
+                                    <span class="visually-hidden">Loading...</span>
+                                </div>
+                                <p class="mt-3">Loading upcoming football matches...</p>
+                            </div>
+                        </div>
+                        
+                        <h3 class="mt-5 mb-3">Recent Football Results</h3>
+                        <div id="football-completed-matches" class="matches-container">
+                            <div class="text-center py-5 no-matches">
+                                <div class="spinner-border text-primary" role="status">
+                                    <span class="visually-hidden">Loading...</span>
+                                </div>
+                                <p class="mt-3">Loading recent football results...</p>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+            
+            <!-- Basketball Tab -->
+            <div class="tab-pane fade" id="basketball" role="tabpanel" aria-labelledby="basketball-tab">
+                <div class="row">
+                    <div class="col-lg-12">
+                        <div class="d-flex justify-content-between align-items-center mb-3">
+                            <h3>Live Basketball Matches</h3>
+                            <div class="refresh-btn">
+                                <button class="btn btn-sm btn-outline-primary" id="refresh-basketball-live">
+                                    <i class="bi bi-arrow-clockwise"></i> Refresh
+                                </button>
+                            </div>
+                        </div>
+                        <div id="basketball-live-matches" class="matches-container">
+                            <div class="text-center py-5 no-matches">
+                                <div class="spinner-border text-primary" role="status">
+                                    <span class="visually-hidden">Loading...</span>
+                                </div>
+                                <p class="mt-3">Loading live basketball matches...</p>
+                            </div>
+                        </div>
+                        
+                        <h3 class="mt-5 mb-3">Upcoming Basketball Matches</h3>
+                        <div id="basketball-upcoming-matches" class="matches-container">
+                            <div class="text-center py-5 no-matches">
+                                <div class="spinner-border text-primary" role="status">
+                                    <span class="visually-hidden">Loading...</span>
+                                </div>
+                                <p class="mt-3">Loading upcoming basketball matches...</p>
+                            </div>
+                        </div>
+                        
+                        <h3 class="mt-5 mb-3">Recent Basketball Results</h3>
+                        <div id="basketball-completed-matches" class="matches-container">
+                            <div class="text-center py-5 no-matches">
+                                <div class="spinner-border text-primary" role="status">
+                                    <span class="visually-hidden">Loading...</span>
+                                </div>
+                                <p class="mt-3">Loading recent basketball results...</p>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+            
+            <!-- Volleyball Tab -->
+            <div class="tab-pane fade" id="volleyball" role="tabpanel" aria-labelledby="volleyball-tab">
+                <div class="row">
+                    <div class="col-lg-12">
+                        <div class="d-flex justify-content-between align-items-center mb-3">
+                            <h3>Live Volleyball Matches</h3>
+                            <div class="refresh-btn">
+                                <button class="btn btn-sm btn-outline-primary" id="refresh-volleyball-live">
+                                    <i class="bi bi-arrow-clockwise"></i> Refresh
+                                </button>
+                            </div>
+                        </div>
+                        <div id="volleyball-live-matches" class="matches-container">
+                            <div class="text-center py-5 no-matches">
+                                <div class="spinner-border text-primary" role="status">
+                                    <span class="visually-hidden">Loading...</span>
+                                </div>
+                                <p class="mt-3">Loading live volleyball matches...</p>
+                            </div>
+                        </div>
+                        
+                        <h3 class="mt-5 mb-3">Upcoming Volleyball Matches</h3>
+                        <div id="volleyball-upcoming-matches" class="matches-container">
+                            <div class="text-center py-5 no-matches">
+                                <div class="spinner-border text-primary" role="status">
+                                    <span class="visually-hidden">Loading...</span>
+                                </div>
+                                <p class="mt-3">Loading upcoming volleyball matches...</p>
+                            </div>
+                        </div>
+                        
+                        <h3 class="mt-5 mb-3">Recent Volleyball Results</h3>
+                        <div id="volleyball-completed-matches" class="matches-container">
+                            <div class="text-center py-5 no-matches">
+                                <div class="spinner-border text-primary" role="status">
+                                    <span class="visually-hidden">Loading...</span>
+                                </div>
+                                <p class="mt-3">Loading recent volleyball results...</p>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+            
+            <!-- Other Sports Tab -->
+            <div class="tab-pane fade" id="other" role="tabpanel" aria-labelledby="other-tab">
+                <div class="row">
+                    <div class="col-lg-12">
+                        <div class="d-flex justify-content-between align-items-center mb-3">
+                            <h3>Live Matches</h3>
+                            <div class="refresh-btn">
+                                <button class="btn btn-sm btn-outline-primary" id="refresh-other-live">
+                                    <i class="bi bi-arrow-clockwise"></i> Refresh
+                                </button>
+                            </div>
+                        </div>
+                        <div id="other-live-matches" class="matches-container">
+                            <div class="text-center py-5 no-matches">
+                                <div class="spinner-border text-primary" role="status">
+                                    <span class="visually-hidden">Loading...</span>
+                                </div>
+                                <p class="mt-3">Loading live matches...</p>
+                            </div>
+                        </div>
+                        
+                        <h3 class="mt-5 mb-3">Upcoming Matches</h3>
+                        <div id="other-upcoming-matches" class="matches-container">
+                            <div class="text-center py-5 no-matches">
+                                <div class="spinner-border text-primary" role="status">
+                                    <span class="visually-hidden">Loading...</span>
+                                </div>
+                                <p class="mt-3">Loading upcoming matches...</p>
+                            </div>
+                        </div>
+                        
+                        <h3 class="mt-5 mb-3">Recent Results</h3>
+                        <div id="other-completed-matches" class="matches-container">
+                            <div class="text-center py-5 no-matches">
+                                <div class="spinner-border text-primary" role="status">
+                                    <span class="visually-hidden">Loading...</span>
+                                </div>
+                                <p class="mt-3">Loading recent results...</p>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <%- include('./partials/footer') %>
+
+    <script>
+        // Helper function to capitalize first letter of a string
+        function capitalize(string) {
+            return string.charAt(0).toUpperCase() + string.slice(1);
+        }
+        
+        document.addEventListener('DOMContentLoaded', function() {
+            // Load matches for all categories on page load
+            loadMatches('all');
+            
+            // Set up tab change listeners
+            document.querySelectorAll('button[data-bs-toggle="tab"]').forEach(tab => {
+                tab.addEventListener('shown.bs.tab', function(event) {
+                    const category = event.target.id.split('-')[0];
+                    loadMatches(category);
+                });
+            });
+            
+            // Set up refresh button listeners
+            document.querySelectorAll('[id^="refresh-"]').forEach(button => {
+                button.addEventListener('click', function() {
+                    const [_, category, type] = this.id.split('-');
+                    if (type === 'live') {
+                        loadLiveMatches(category);
+                    } else if (type === 'upcoming') {
+                        loadUpcomingMatches(category);
+                    } else if (type === 'completed') {
+                        loadCompletedMatches(category);
+                    }
+                });
+            });
+            
+            // Auto-refresh live matches every minute
+            setInterval(() => {
+                const activeTab = document.querySelector('button[data-bs-toggle="tab"].active');
+                if (activeTab) {
+                    const category = activeTab.id.split('-')[0];
+                    loadLiveMatches(category);
+                }
+            }, 60000);
+        });
+        
+        function loadMatches(category) {
+            loadLiveMatches(category);
+            loadUpcomingMatches(category);
+            loadCompletedMatches(category);
+        }
+        
+        function loadLiveMatches(category) {
+            const container = document.getElementById(`${category}-live-matches`);
+            container.innerHTML = `
+                <div class="text-center py-5">
+                    <div class="spinner-border text-primary" role="status">
+                        <span class="visually-hidden">Loading...</span>
+                    </div>
+                    <p class="mt-3">Loading live matches...</p>
+                </div>
+            `;
+            
+            console.log(`Fetching live matches for category: ${category}`);
+            const url = category === 'all' 
+                ? '/api/matches/live' 
+                : `/api/matches/live?category=${capitalize(category)}`;
+            
+            console.log(`Requesting URL: ${url}`);    
+            fetch(url)
+                .then(response => {
+                    console.log(`Response status: ${response.status}`);
+                    if (!response.ok) {
+                        throw new Error(`Server returned ${response.status}: ${response.statusText}`);
+                    }
+                    return response.json();
+                })
+                .then(data => {
+                    console.log(`Received data for ${category}:`, data);
+                    if (data.success && data.data && data.data.length > 0) {
+                        container.innerHTML = '';
+                        data.data.forEach(match => {
+                            container.appendChild(createMatchCard(match, true));
+                        });
+                    } else {
+                        container.innerHTML = `
+                            <div class="text-center py-5 no-matches">
+                                <i class="bi bi-calendar-x" style="font-size: 3rem; color: #6c757d;"></i>
+                                <p class="mt-3">No live matches at the moment</p>
+                            </div>
+                        `;
+                    }
+                })
+                .catch(error => {
+                    console.error(`Error loading live ${category} matches:`, error);
+                    container.innerHTML = `
+                        <div class="alert alert-danger">
+                            <i class="bi bi-exclamation-triangle-fill"></i> 
+                            Error loading matches: ${error.message}. Please try again later.
+                        </div>
+                    `;
+                });
+        }
+        
+        function loadUpcomingMatches(category) {
+            const container = document.getElementById(`${category}-upcoming-matches`);
+            container.innerHTML = `
+                <div class="text-center py-5">
+                    <div class="spinner-border text-primary" role="status">
+                        <span class="visually-hidden">Loading...</span>
+                    </div>
+                    <p class="mt-3">Loading upcoming matches...</p>
+                </div>
+            `;
+            
+            const url = category === 'all' 
+                ? '/api/matches/upcoming?limit=5' 
+                : `/api/matches/upcoming?category=${capitalize(category)}&limit=5`;
+                
+            fetch(url)
+                .then(response => response.json())
+                .then(data => {
+                    if (data.success && data.data.length > 0) {
+                        container.innerHTML = '';
+                        data.data.forEach(match => {
+                            container.appendChild(createMatchCard(match, false));
+                        });
+                    } else {
+                        container.innerHTML = `
+                            <div class="text-center py-5 no-matches">
+                                <i class="bi bi-calendar-x" style="font-size: 3rem; color: #6c757d;"></i>
+                                <p class="mt-3">No upcoming matches scheduled</p>
+                            </div>
+                        `;
+                    }
+                })
+                .catch(error => {
+                    console.error(`Error loading upcoming ${category} matches:`, error);
+                    container.innerHTML = `
+                        <div class="alert alert-danger">
+                            <i class="bi bi-exclamation-triangle-fill"></i> 
+                            Error loading matches. Please try again later.
+                        </div>
+                    `;
+                });
+        }
+        
+        function loadCompletedMatches(category) {
+            const container = document.getElementById(`${category}-completed-matches`);
+            container.innerHTML = `
+                <div class="text-center py-5">
+                    <div class="spinner-border text-primary" role="status">
+                        <span class="visually-hidden">Loading...</span>
+                    </div>
+                    <p class="mt-3">Loading recent results...</p>
+                </div>
+            `;
+            
+            const url = category === 'all' 
+                ? '/api/matches/completed?limit=5' 
+                : `/api/matches/completed?category=${capitalize(category)}&limit=5`;
+                
+            fetch(url)
+                .then(response => response.json())
+                .then(data => {
+                    if (data.success && data.data.length > 0) {
+                        container.innerHTML = '';
+                        data.data.forEach(match => {
+                            container.appendChild(createMatchCard(match, false));
+                        });
+                    } else {
+                        container.innerHTML = `
+                            <div class="text-center py-5 no-matches">
+                                <i class="bi bi-calendar-x" style="font-size: 3rem; color: #6c757d;"></i>
+                                <p class="mt-3">No recent match results available</p>
+                            </div>
+                        `;
+                    }
+                })
+                .catch(error => {
+                    console.error(`Error loading completed ${category} matches:`, error);
+                    container.innerHTML = `
+                        <div class="alert alert-danger">
+                            <i class="bi bi-exclamation-triangle-fill"></i> 
+                            Error loading matches. Please try again later.
+                        </div>
+                    `;
+                });
+        }
+        
+        function createMatchCard(match, isLive) {
+            const card = document.createElement('div');
+            card.className = `card mb-3 score-card ${match.status === 'live' ? 'live' : ''}`;
+            card.setAttribute('data-match-id', match._id);
+            
+            let statusDisplay = '';
+            if (match.status === 'live') {
+                statusDisplay = '<span class="live-indicator"></span> LIVE';
+            } else if (match.status === 'completed') {
+                statusDisplay = 'COMPLETED';
+            } else if (match.status === 'scheduled') {
+                statusDisplay = 'UPCOMING';
+            } else if (match.status === 'postponed') {
+                statusDisplay = 'POSTPONED';
+            } else if (match.status === 'cancelled') {
+                statusDisplay = 'CANCELLED';
+            }
+            
+            const matchTime = new Date(match.startTime);
+            const formattedDate = matchTime.toLocaleDateString('en-US', { weekday: 'short', month: 'short', day: 'numeric' });
+            const formattedTime = matchTime.toLocaleTimeString('en-US', { hour: 'numeric', minute: '2-digit', hour12: true });
+            
+            card.innerHTML = `
+                <div class="card-body">
+                    <div class="row align-items-center">
+                        <div class="col-md-8">
+                            <p class="card-text mb-1 tournament-name">${match.tournament || ''}</p>
+                            <div class="d-flex align-items-center mb-2">
+                                <span class="team-name">${match.homeTeam}</span>
+                                <span class="score-display mx-2">${match.homeScore} - ${match.awayScore}</span>
+                                <span class="team-name">${match.awayTeam}</span>
+                            </div>
+                            <p class="match-venue mb-1">
+                                ${match.venue && match.venue.name ? match.venue.name : ''}
+                                ${match.venue && match.venue.location ? `, ${match.venue.location}` : ''}
+                            </p>
+                        </div>
+                        <div class="col-md-4 text-end">
+                            <p class="match-status mb-1">${statusDisplay}</p>
+                            <p class="match-time mb-0">${formattedDate}, ${formattedTime}</p>
+                            <button class="btn btn-sm btn-outline-primary mt-2 view-details-btn">
+                                View Details <i class="bi bi-chevron-down"></i>
+                            </button>
+                        </div>
+                    </div>
+                    <div class="match-details mt-3" style="display: none;">
+                        <hr>
+                        <div class="match-summary">
+                            ${getCategorySpecificDetails(match)}
+                        </div>
+                        <div class="latest-updates mt-3">
+                            <h6 class="latest-updates-title d-flex justify-content-between align-items-center">
+                                <span><i class="bi bi-lightning-fill"></i> Latest Updates</span>
+                                <button class="btn btn-sm btn-outline-primary fetch-updates-btn" data-match-id="${match._id}">
+                                    <i class="bi bi-arrow-repeat"></i> Get Live Updates
+                                </button>
+                            </h6>
+                            <div class="latest-updates-content">
+                                ${getMatchUpdates(match)}
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            `;
+            
+            // Add click event for expanding/collapsing details
+            setTimeout(() => {
+                const detailsBtn = card.querySelector('.view-details-btn');
+                const detailsSection = card.querySelector('.match-details');
+                
+                detailsBtn.addEventListener('click', function() {
+                    const isExpanded = detailsSection.style.display !== 'none';
+                    
+                    if (isExpanded) {
+                        detailsSection.style.display = 'none';
+                        this.innerHTML = 'View Details <i class="bi bi-chevron-down"></i>';
+                    } else {
+                        detailsSection.style.display = 'block';
+                        this.innerHTML = 'Hide Details <i class="bi bi-chevron-up"></i>';
+                        
+                        // If match is live, fetch latest details
+                        if (match.status === 'live') {
+                            fetchMatchDetails(match._id, detailsSection);
+                        }
+                    }
+                });
+            }, 0);
+            
+            return card;
+        }
+        
+        function getCategorySpecificDetails(match) {
+            // Create HTML for sport-specific match details
+            switch (match.category) {
+                case 'Cricket':
+                    return getCricketDetails(match);
+                case 'Football':
+                    return getFootballDetails(match);
+                case 'Basketball':
+                    return getBasketballDetails(match);
+                case 'Volleyball':
+                    return getVolleyballDetails(match);
+                default:
+                    return getDefaultDetails(match);
+            }
+        }
+        
+        function getCricketDetails(match) {
+            if (!match.innings || match.innings.length === 0) {
+                return `<p class="text-muted">Detailed statistics not available for this match.</p>`;
+            }
+            
+            let html = `<h6>Match Summary</h6><div class="table-responsive"><table class="table table-sm">
+                <thead>
+                    <tr>
+                        <th>Team</th>
+                        <th>Runs</th>
+                        <th>Wickets</th>
+                        <th>Overs</th>
+                    </tr>
+                </thead>
+                <tbody>`;
+                
+            match.innings.forEach(inning => {
+                html += `
+                    <tr>
+                        <td>${inning.team}</td>
+                        <td><strong>${inning.runs}</strong></td>
+                        <td>${inning.wickets}</td>
+                        <td>${inning.overs}</td>
+                    </tr>
+                `;
+            });
+            
+            html += `</tbody></table></div>`;
+            
+            // Add current batsmen if available
+            if (match.status === 'live' && match.innings.length > 1) {
+                const currentInning = match.innings[match.innings.length - 1];
+                const remainingRuns = match.remainingRuns || (match.targetRuns ? match.targetRuns - currentInning.runs : '?');
+                const remainingOvers = match.remainingOvers || '?';
+                
+                // Format overs to show balls properly (14.3 instead of 14.3000001)
+                let formattedOvers = remainingOvers;
+                if (typeof remainingOvers === 'number') {
+                    const fullOvers = Math.floor(remainingOvers);
+                    const balls = Math.round((remainingOvers - fullOvers) * 10);
+                    formattedOvers = balls > 0 ? `${fullOvers}.${balls}` : fullOvers;
+                }
+                
+                html += `
+                    <div class="current-status mt-3">
+                        <p><strong>${currentInning.team}</strong> needs <strong>${remainingRuns}</strong>
+                        runs from <strong>${formattedOvers}</strong> overs.</p>
+                    </div>
+                `;
+            }
+            
+            return html;
+        }
+        
+        function getFootballDetails(match) {
+            if (!match.goals || match.goals.length === 0) {
+                return `<p class="text-muted">Detailed statistics not available for this match.</p>`;
+            }
+            
+            let html = `<h6>Goals</h6><ul class="list-group">`;
+            
+            match.goals.forEach(goal => {
+                const teamLabel = goal.team === 'home' ? match.homeTeam : match.awayTeam;
+                html += `
+                    <li class="list-group-item">
+                        <i class="bi bi-trophy-fill text-warning me-2"></i>
+                        <strong>${goal.minute}'</strong> - ${goal.player} (${teamLabel})
+                    </li>
+                `;
+            });
+            
+            html += `</ul>`;
+            
+            // Add possession, shots, corners stats if available
+            if (match.stats) {
+                html += `
+                    <h6 class="mt-3">Match Stats</h6>
+                    <div class="row text-center stats-row">
+                        <div class="col-4">
+                            <div class="stat-label">Possession</div>
+                            <div class="stat-value">${match.stats.homePossession || '0'}% - ${match.stats.awayPossession || '0'}%</div>
+                        </div>
+                        <div class="col-4">
+                            <div class="stat-label">Shots</div>
+                            <div class="stat-value">${match.stats.homeShots || '0'} - ${match.stats.awayShots || '0'}</div>
+                        </div>
+                        <div class="col-4">
+                            <div class="stat-label">Corners</div>
+                            <div class="stat-value">${match.stats.homeCorners || '0'} - ${match.stats.awayCorners || '0'}</div>
+                        </div>
+                    </div>
+                `;
+            }
+            
+            return html;
+        }
+        
+        function getBasketballDetails(match) {
+            if (!match.quarters || match.quarters.length === 0) {
+                return `<p class="text-muted">Detailed statistics not available for this match.</p>`;
+            }
+            
+            let html = `<h6>Quarter Scores</h6><div class="table-responsive"><table class="table table-sm">
+                <thead>
+                    <tr>
+                        <th>Quarter</th>
+                        <th>${match.homeTeam}</th>
+                        <th>${match.awayTeam}</th>
+                    </tr>
+                </thead>
+                <tbody>`;
+                
+            match.quarters.forEach(quarter => {
+                html += `
+                    <tr>
+                        <td>Q${quarter.quarter}</td>
+                        <td>${quarter.homeScore}</td>
+                        <td>${quarter.awayScore}</td>
+                    </tr>
+                `;
+            });
+            
+            // Add total row
+            html += `
+                <tr class="table-active">
+                    <td><strong>Total</strong></td>
+                    <td><strong>${match.homeScore}</strong></td>
+                    <td><strong>${match.awayScore}</strong></td>
+                </tr>
+            `;
+            
+            html += `</tbody></table></div>`;
+            
+            return html;
+        }
+        
+        function getVolleyballDetails(match) {
+            // For volleyball, show sets if available
+            if (!match.sets || match.sets.length === 0) {
+                return `<p class="text-muted">Detailed statistics not available for this match.</p>`;
+            }
+            
+            let html = `<h6>Set Scores</h6><div class="table-responsive"><table class="table table-sm">
+                <thead>
+                    <tr>
+                        <th>Set</th>
+                        <th>${match.homeTeam}</th>
+                        <th>${match.awayTeam}</th>
+                    </tr>
+                </thead>
+                <tbody>`;
+                
+            match.sets.forEach((set, index) => {
+                html += `
+                    <tr>
+                        <td>Set ${index + 1}</td>
+                        <td>${set.homeScore}</td>
+                        <td>${set.awayScore}</td>
+                    </tr>
+                `;
+            });
+            
+            html += `</tbody></table></div>`;
+            
+            return html;
+        }
+        
+        function getDefaultDetails(match) {
+            return `
+                <div class="row">
+                    <div class="col-md-6">
+                        <h6>${match.homeTeam}</h6>
+                        <div class="score-big">${match.homeScore}</div>
+                    </div>
+                    <div class="col-md-6">
+                        <h6>${match.awayTeam}</h6>
+                        <div class="score-big">${match.awayScore}</div>
+                    </div>
+                </div>
+            `;
+        }
+        
+        function getMatchUpdates(match) {
+            // If match has updates, show them
+            if (match.updates && match.updates.length > 0) {
+                let html = `<div class="timeline">`;
+                
+                match.updates.slice().reverse().forEach((update, index) => {
+                    html += `
+                        <div class="timeline-item ${index === 0 ? 'latest' : ''}">
+                            <div class="timeline-marker"></div>
+                            <div class="timeline-content">
+                                <div class="timeline-time d-flex justify-content-between">
+                                    <span>${formatUpdateTime(update.time)}</span>
+                                    ${update.source ? `<small class="text-muted">Source: ${update.source}</small>` : ''}
+                                </div>
+                                <div class="timeline-text">
+                                    ${update.important ? '<span class="badge bg-warning text-dark me-2">Key Event</span>' : ''}
+                                    ${update.text}
+                                </div>
+                            </div>
+                        </div>
+                    `;
+                });
+                
+                html += `</div>`;
+                return html;
+            } else {
+                // No updates available message
+                return `
+                    <div class="no-updates text-center p-3">
+                        <i class="bi bi-bell-fill text-muted"></i>
+                        <p class="text-muted mt-2">${match.status === 'live' ? 'Match updates will appear here.' : 'No updates available for this match.'}</p>
+                    </div>
+                `;
+            }
+        }
+        
+        function formatUpdateTime(timestamp) {
+            if (!timestamp) return '';
+            
+            const updateTime = new Date(timestamp);
+            return updateTime.toLocaleTimeString('en-US', {
+                hour: '2-digit',
+                minute: '2-digit'
+            });
+        }
+        
+        function fetchMatchDetails(matchId, detailsContainer) {
+            fetch(`/api/matches/${matchId}`)
+                .then(response => response.json())
+                .then(data => {
+                    if (data.success) {
+                        const match = data.data;
+                        const summarySection = detailsContainer.querySelector('.match-summary');
+                        const updatesSection = detailsContainer.querySelector('.latest-updates-content');
+                        
+                        // Update the match summary
+                        summarySection.innerHTML = getCategorySpecificDetails(match);
+                        
+                        // Update the latest updates
+                        updatesSection.innerHTML = getMatchUpdates(match);
+                    }
+                })
+                .catch(error => {
+                    console.error('Error fetching match details:', error);
+                });
+        }
+        
+        // Add event listeners for fetching updates
+        document.addEventListener('DOMContentLoaded', function() {
+            // Add styles for the new elements
+            const styleEl = document.createElement('style');
+            styleEl.textContent = `
+                .timeline {
+                    position: relative;
+                    max-height: 300px;
+                    overflow-y: auto;
+                    padding-left: 20px;
+                    margin-bottom: 15px;
+                }
+                .timeline::before {
+                    content: '';
+                    position: absolute;
+                    left: 7px;
+                    top: 5px;
+                    height: calc(100% - 10px);
+                    width: 2px;
+                    background-color: #dee2e6;
+                }
+                .timeline-item {
+                    position: relative;
+                    margin-bottom: 15px;
+                }
+                .timeline-item.latest .timeline-marker {
+                    background-color: #dc3545;
+                }
+                .timeline-item.latest .timeline-content {
+                    background-color: rgba(220, 53, 69, 0.05);
+                }
+                .timeline-marker {
+                    position: absolute;
+                    left: -20px;
+                    top: 5px;
+                    width: 12px;
+                    height: 12px;
+                    border-radius: 50%;
+                    background-color: #6c757d;
+                    z-index: 1;
+                }
+                .timeline-content {
+                    border-radius: 4px;
+                    padding: 8px 12px;
+                    border: 1px solid #dee2e6;
+                }
+                .timeline-time {
+                    font-size: 0.8rem;
+                    color: #6c757d;
+                    margin-bottom: 4px;
+                }
+                .stat-label {
+                    font-size: 0.8rem;
+                    color: #6c757d;
+                }
+                .stat-value {
+                    font-weight: bold;
+                }
+                .score-big {
+                    font-size: 2.5rem;
+                    font-weight: bold;
+                    text-align: center;
+                }
+                .view-details-btn:focus {
+                    box-shadow: none;
+                }
+                .fetch-updates-btn {
+                    font-size: 0.8rem;
+                    padding: 0.25rem 0.5rem;
+                }
+                .fetch-updates-btn.loading {
+                    opacity: 0.7;
+                    pointer-events: none;
+                }
+                .fetch-updates-btn.loading i {
+                    animation: spin 1s linear infinite;
+                }
+                @keyframes spin {
+                    0% { transform: rotate(0deg); }
+                    100% { transform: rotate(360deg); }
+                }
+            `;
+            document.head.appendChild(styleEl);
+            
+            // Add click handlers for fetch updates buttons
+            document.addEventListener('click', function(e) {
+                if (e.target.closest('.fetch-updates-btn')) {
+                    const btn = e.target.closest('.fetch-updates-btn');
+                    const matchId = btn.getAttribute('data-match-id');
+                    
+                    // Add loading state
+                    btn.classList.add('loading');
+                    const originalText = btn.innerHTML;
+                    btn.innerHTML = '<i class="bi bi-arrow-repeat"></i> Fetching...';
+                    
+                    // Call API to fetch web updates
+                    fetch(`/api/matches/${matchId}/web-updates`)
+                        .then(response => response.json())
+                        .then(data => {
+                            if (data.success) {
+                                // Get the container for updates
+                                const detailsContainer = btn.closest('.match-details');
+                                const updatesSection = detailsContainer.querySelector('.latest-updates-content');
+                                
+                                // Update the match object with new data
+                                const card = btn.closest('.score-card');
+                                const currentMatch = getMatchData(card);
+                                currentMatch.updates = data.data.updates;
+                                
+                                // Update the UI
+                                updatesSection.innerHTML = getMatchUpdates(currentMatch);
+                                
+                                // Show success message
+                                showUpdateNotification(data.message, 'success');
+                            } else {
+                                showUpdateNotification(data.error || 'Failed to fetch updates', 'danger');
+                            }
+                        })
+                        .catch(error => {
+                            console.error('Error fetching updates:', error);
+                            showUpdateNotification('Error fetching updates', 'danger');
+                        })
+                        .finally(() => {
+                            // Remove loading state
+                            btn.classList.remove('loading');
+                            btn.innerHTML = originalText;
+                        });
+                }
+            });
+            
+            // Function to get match data from a card
+            function getMatchData(card) {
+                const matchId = card.getAttribute('data-match-id');
+                const homeTeam = card.querySelector('.team-name:first-of-type').textContent;
+                const awayTeam = card.querySelector('.team-name:last-of-type').textContent;
+                const homeScore = card.querySelector('.score-display').textContent.split('-')[0].trim();
+                const awayScore = card.querySelector('.score-display').textContent.split('-')[1].trim();
+                const status = card.classList.contains('live') ? 'live' : 
+                              card.querySelector('.match-status').textContent.toLowerCase();
+                
+                return {
+                    _id: matchId,
+                    homeTeam,
+                    awayTeam,
+                    homeScore,
+                    awayScore,
+                    status
+                };
+            }
+            
+            // Show a notification message
+            function showUpdateNotification(message, type) {
+                const notification = document.createElement('div');
+                notification.className = `alert alert-${type} update-notification`;
+                notification.innerHTML = message;
+                notification.style.position = 'fixed';
+                notification.style.top = '20px';
+                notification.style.right = '20px';
+                notification.style.zIndex = '9999';
+                notification.style.maxWidth = '300px';
+                
+                document.body.appendChild(notification);
+                
+                // Remove after 3 seconds
+                setTimeout(() => {
+                    notification.style.opacity = '0';
+                    notification.style.transition = 'opacity 0.5s';
+                    setTimeout(() => {
+                        document.body.removeChild(notification);
+                    }, 500);
+                }, 3000);
+            }
+            
+            // Auto-refresh live match details when expanded
+            setInterval(() => {
+                document.querySelectorAll('.score-card.live').forEach(card => {
+                    const detailsSection = card.querySelector('.match-details');
+                    const matchId = card.getAttribute('data-match-id');
+                    
+                    // Only refresh if details are currently expanded
+                    if (detailsSection && detailsSection.style.display === 'block' && matchId) {
+                        fetchMatchDetails(matchId, detailsSection);
+                    }
+                });
+            }, 30000); // Every 30 seconds
+        });
+    </script>
+</body>
+</html> 

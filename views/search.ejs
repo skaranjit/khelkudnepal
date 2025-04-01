@@ -136,6 +136,7 @@
           
           if (data.success && data.data.length > 0) {
             data.data.forEach(article => {
+              // Create HTML for comment
               const html = `
                 <div class="col-md-6 mb-4">
                   <div class="card h-100">
@@ -149,7 +150,28 @@
                     <div class="card-body">
                       <span class="badge bg-primary mb-2">${article.category}</span>
                       <h5 class="card-title">${article.title}</h5>
-                      <p class="card-text">${article.summary.substring(0, 100)}...</p>
+                      <div class="article-summary">
+                        ${article.summary ? 
+                          `<div class="summary-content">
+                            <p class="lead-sentence">${getSummaryFirstSentence(article.summary)}</p>
+                            ${getRestOfSummary(article.summary) ? 
+                              `<p class="supporting-text">${getRestOfSummary(article.summary)}</p>` : ''}
+                            
+                            <div class="key-details mt-2">
+                              ${article.location && article.location.country ? 
+                                `<span class="badge bg-info me-1"><i class="bi bi-geo-alt"></i> ${article.location.country}${article.location.city ? ', ' + article.location.city : ''}</span>` : ''}
+                              
+                              ${article.tags && article.tags.length > 0 ? 
+                                article.tags.slice(0, 2).map(tag => 
+                                  `<span class="badge bg-primary me-1">${tag}</span>`
+                                ).join('') : ''}
+                              
+                              ${article.source ? 
+                                `<span class="badge bg-secondary me-1"><i class="bi bi-newspaper"></i> ${article.source}</span>` : ''}
+                            </div>
+                          </div>`
+                        : '<p class="card-text text-muted">No summary available</p>'}
+                      </div>
                     </div>
                     <div class="card-footer bg-white border-0">
                       <div class="d-flex justify-content-between align-items-center">
@@ -187,6 +209,20 @@
           console.error('Search error:', error);
           document.getElementById('search-results-container').innerHTML = '<div class="col-12 text-center py-5"><p>Error searching for articles. Please try again later.</p></div>';
         });
+    }
+    
+    // Helper function to get first sentence of summary
+    function getSummaryFirstSentence(summary) {
+      if (!summary) return '';
+      const sentences = summary.match(/[^\.!\?]+[\.!\?]+/g) || [summary];
+      return sentences[0] || '';
+    }
+    
+    // Helper function to get rest of summary
+    function getRestOfSummary(summary) {
+      if (!summary) return '';
+      const sentences = summary.match(/[^\.!\?]+[\.!\?]+/g) || [summary];
+      return sentences.length > 1 ? sentences.slice(1).join(' ') : '';
     }
     
     // Format date helper function

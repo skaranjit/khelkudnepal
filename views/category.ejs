@@ -39,8 +39,52 @@
                                     <span class="ms-2"><i class="bi bi-person"></i> <%= article.author %></span>
                                 </small>
                             </p>
-                            <p class="card-text"><%= article.summary %></p>
-                            <a href="/news/<%= article._id %>" class="btn btn-primary">Read More</a>
+                            <div class="article-summary">
+                                <% if (article.summary && article.summary.length > 0) { %>
+                                    <% 
+                                    // Split summary into sentences properly
+                                    const sentences = article.summary.match(/[^\.!\?]+[\.!\?]+/g) || [article.summary];
+                                    const firstSentence = sentences[0] || '';
+                                    const restSentences = sentences.slice(1).join(' ') || '';
+                                    
+                                    // Extract key information (date, location, names)
+                                    let location = '';
+                                    if (article.location && article.location.country) {
+                                        location = article.location.country;
+                                        if (article.location.city) location = article.location.city + ', ' + location;
+                                    }
+                                    
+                                    // Format date nicely
+                                    const pubDate = new Date(article.publishedAt).toLocaleDateString('en-US', { 
+                                        year: 'numeric', 
+                                        month: 'short', 
+                                        day: 'numeric' 
+                                    });
+                                    %>
+                                    
+                                    <div class="summary-content">
+                                        <p class="lead-sentence"><%= firstSentence %></p>
+                                        
+                                        <% if (restSentences) { %>
+                                        <p class="supporting-text"><%= restSentences %></p>
+                                        <% } %>
+                                        
+                                        <div class="key-details mt-2">
+                                            <% if (location) { %>
+                                            <span class="badge bg-light text-dark me-2"><i class="bi bi-geo-alt"></i> <%= location %></span>
+                                            <% } %>
+                                            <% if (article.tags && article.tags.length > 0) { %>
+                                                <% article.tags.slice(0, 2).forEach(tag => { %>
+                                                <span class="badge bg-primary me-1"><%= tag %></span>
+                                                <% }); %>
+                                            <% } %>
+                                        </div>
+                                    </div>
+                                <% } else { %>
+                                    <p class="card-text summary-text text-muted">No summary available for this article.</p>
+                                <% } %>
+                            </div>
+                            <a href="/news/<%= article._id %>" class="btn btn-primary mt-2">Read More</a>
                         </div>
                     </div>
                 </div>

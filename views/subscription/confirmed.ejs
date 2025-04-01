@@ -1,0 +1,65 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Subscription Confirmed | Khelkud Nepal</title>
+  <link rel="stylesheet" href="/css/styles.css">
+  <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
+  <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.1/font/bootstrap-icons.css">
+</head>
+<body>
+  <%- include('../partials/header') %>
+
+  <div class="container mt-5 mb-5">
+    <div class="row justify-content-center">
+      <div class="col-md-8 col-lg-6">
+        <div class="card shadow-sm border-0">
+          <div class="card-body text-center p-5">
+            <div class="mb-4">
+              <i class="bi bi-check-circle-fill text-success" style="font-size: 5rem;"></i>
+            </div>
+            <h2>Subscription Confirmed!</h2>
+            <p class="lead mb-4">Thank you for subscribing to our newsletter</p>
+            
+            <div class="subscription-details p-4 my-4 bg-light rounded">
+              <h5>Your Subscription Details</h5>
+              <div class="row mt-3">
+                <div class="col-md-4 text-md-end fw-bold">Email:</div>
+                <div class="col-md-8 text-md-start"><%= email %></div>
+              </div>
+              <% if (preferences && preferences.frequency) { %>
+              <div class="row mt-2">
+                <div class="col-md-4 text-md-end fw-bold">Frequency:</div>
+                <div class="col-md-8 text-md-start"><%= preferences.frequency.charAt(0).toUpperCase() + preferences.frequency.slice(1) %></div>
+              </div>
+              <% } %>
+              <% if (preferences && preferences.categories && preferences.categories.length > 0) { %>
+              <div class="row mt-2">
+                <div class="col-md-4 text-md-end fw-bold">Categories:</div>
+                <div class="col-md-8 text-md-start">
+                  <% preferences.categories.forEach((category, index) => { %>
+                    <span class="badge bg-primary me-1"><%= category %></span>
+                  <% }); %>
+                </div>
+              </div>
+              <% } %>
+            </div>
+            
+            <p>You will now receive our newsletter with the latest sports updates according to your preferences.</p>
+            
+            <div class="mt-4">
+              <a href="/" class="btn btn-primary">Return to Homepage</a>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <%- include('../partials/footer') %>
+  
+  <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
+  <script src="/js/main.js"></script>
+</body>
+</html> 

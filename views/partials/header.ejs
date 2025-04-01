@@ -97,10 +97,18 @@
                         <li class="nav-item">
                             <a class="nav-link <%= typeof activeNav !== 'undefined' && activeNav === 'trending' ? 'active' : '' %>" href="/trending">Trending</a>
                         </li>
+                        <li class="nav-item">
+                            <a class="nav-link <%= typeof activeNav !== 'undefined' && activeNav === 'live-scores' ? 'active' : '' %>" href="/live-scores">Live Scores</a>
+                        </li>
+                        <li class="nav-item">
+                            <a class="nav-link <%= typeof activeNav !== 'undefined' && activeNav === 'leagues' ? 'active' : '' %>" href="/leagues">Nepali Leagues</a>
+                        </li>
                     </ul>
                     <form class="d-flex me-2" id="search-form" action="/search" method="GET">
-                        <input class="form-control me-2" type="search" placeholder="Search news..." aria-label="Search" name="q" id="search-input">
-                        <button class="btn btn-outline-light" type="submit">Search</button>
+                        <input class="form-control me-2" type="search" placeholder="Search news..." aria-label="Search" name="q" id="search-input" required>
+                        <button class="btn btn-outline-light" type="submit">
+                            <i class="bi bi-search"></i>
+                        </button>
                     </form>
                     <div class="nav-item dropdown">
                         <a class="nav-link dropdown-toggle text-light" href="#" role="button" data-bs-toggle="dropdown" aria-expanded="false">

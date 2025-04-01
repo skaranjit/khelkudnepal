@@ -1,0 +1,853 @@
+<%- include('../partials/header', { title: 'Edit Match' }) %>
+
+<div class="container-fluid py-4">
+  <div class="row">
+    <div class="col-12">
+      <div class="card mb-4">
+        <div class="card-header pb-0 d-flex justify-content-between align-items-center">
+          <h6>Edit Match</h6>
+          <div>
+            <a href="/admin/matches" class="btn btn-sm btn-outline-secondary">
+              <i class="bi bi-arrow-left"></i> Back to Matches
+            </a>
+          </div>
+        </div>
+        <div class="card-body">
+          <% if (locals.success) { %>
+            <div class="alert alert-success" role="alert">
+              <%= success %>
+            </div>
+          <% } %>
+          
+          <% if (locals.error) { %>
+            <div class="alert alert-danger" role="alert">
+              <%= error %>
+            </div>
+          <% } %>
+          
+          <form action="/admin/matches/edit/<%= match._id %>" method="POST">
+            <div class="row">
+              <div class="col-md-6">
+                <div class="mb-3">
+                  <label for="homeTeam" class="form-label">Home Team</label>
+                  <input type="text" class="form-control" id="homeTeam" name="homeTeam" value="<%= match.homeTeam %>" required>
+                </div>
+              </div>
+              <div class="col-md-6">
+                <div class="mb-3">
+                  <label for="awayTeam" class="form-label">Away Team</label>
+                  <input type="text" class="form-control" id="awayTeam" name="awayTeam" value="<%= match.awayTeam %>" required>
+                </div>
+              </div>
+            </div>
+            
+            <div class="row">
+              <div class="col-md-6">
+                <div class="mb-3">
+                  <label for="homeScore" class="form-label">Home Score</label>
+                  <input type="number" class="form-control" id="homeScore" name="homeScore" value="<%= match.homeScore %>" min="0">
+                </div>
+              </div>
+              <div class="col-md-6">
+                <div class="mb-3">
+                  <label for="awayScore" class="form-label">Away Score</label>
+                  <input type="number" class="form-control" id="awayScore" name="awayScore" value="<%= match.awayScore %>" min="0">
+                </div>
+              </div>
+            </div>
+            
+            <div class="row">
+              <div class="col-md-4">
+                <div class="mb-3">
+                  <label for="startTime" class="form-label">Start Time</label>
+                  <input type="datetime-local" class="form-control" id="startTime" name="startTime" 
+                    value="<%= new Date(match.startTime).toISOString().slice(0, 16) %>" required>
+                </div>
+              </div>
+              <div class="col-md-4">
+                <div class="mb-3">
+                  <label for="category" class="form-label">Category</label>
+                  <select class="form-select" id="category" name="category" required>
+                    <option value="Cricket" <%= match.category === 'Cricket' ? 'selected' : '' %>>Cricket</option>
+                    <option value="Football" <%= match.category === 'Football' ? 'selected' : '' %>>Football</option>
+                    <option value="Basketball" <%= match.category === 'Basketball' ? 'selected' : '' %>>Basketball</option>
+                    <option value="Volleyball" <%= match.category === 'Volleyball' ? 'selected' : '' %>>Volleyball</option>
+                    <option value="Other" <%= match.category === 'Other' ? 'selected' : '' %>>Other</option>
+                  </select>
+                </div>
+              </div>
+              <div class="col-md-4">
+                <div class="mb-3">
+                  <label for="status" class="form-label">Status</label>
+                  <select class="form-select" id="status" name="status" required>
+                    <option value="scheduled" <%= match.status === 'scheduled' ? 'selected' : '' %>>Scheduled</option>
+                    <option value="live" <%= match.status === 'live' ? 'selected' : '' %>>Live</option>
+                    <option value="completed" <%= match.status === 'completed' ? 'selected' : '' %>>Completed</option>
+                    <option value="postponed" <%= match.status === 'postponed' ? 'selected' : '' %>>Postponed</option>
+                    <option value="cancelled" <%= match.status === 'cancelled' ? 'selected' : '' %>>Cancelled</option>
+                  </select>
+                </div>
+              </div>
+            </div>
+            
+            <div class="row">
+              <div class="col-md-6">
+                <div class="mb-3">
+                  <label for="tournament" class="form-label">Tournament</label>
+                  <input type="text" class="form-control" id="tournament" name="tournament" value="<%= match.tournament || '' %>">
+                </div>
+              </div>
+              <div class="col-md-6">
+                <div class="mb-3">
+                  <label for="round" class="form-label">Round</label>
+                  <input type="text" class="form-control" id="round" name="round" value="<%= match.round || '' %>">
+                </div>
+              </div>
+            </div>
+            
+            <div class="row">
+              <div class="col-md-6">
+                <div class="mb-3">
+                  <label for="venueName" class="form-label">Venue Name</label>
+                  <input type="text" class="form-control" id="venueName" name="venue[name]" value="<%= match.venue && match.venue.name || '' %>">
+                </div>
+              </div>
+              <div class="col-md-6">
+                <div class="mb-3">
+                  <label for="venueLocation" class="form-label">Venue Location</label>
+                  <input type="text" class="form-control" id="venueLocation" name="venue[location]" value="<%= match.venue && match.venue.location || '' %>">
+                </div>
+              </div>
+            </div>
+            
+            <div class="mb-3">
+              <label for="imageUrl" class="form-label">Image URL</label>
+              <input type="text" class="form-control" id="imageUrl" name="imageUrl" value="<%= match.imageUrl || '' %>">
+            </div>
+            
+            <div class="mb-3">
+              <button type="submit" class="btn btn-primary">Update Match</button>
+            </div>
+          </form>
+        </div>
+      </div>
+    </div>
+  </div>
+  
+  <!-- Live Commentary Section -->
+  <div class="row">
+    <div class="col-12">
+      <div class="card mb-4">
+        <div class="card-header pb-0 d-flex justify-content-between align-items-center">
+          <h6>Live Commentary</h6>
+          <div>
+            <span class="badge bg-<%= match.status === 'live' ? 'success' : 'secondary' %>">
+              <%= match.status.toUpperCase() %>
+            </span>
+          </div>
+        </div>
+        <div class="card-body">
+          <% if (match.status === 'live') { %>
+            <form id="commentaryForm" action="/admin/matches/commentary/<%= match._id %>" method="POST">
+              <div class="mb-3">
+                <label for="commentaryText" class="form-label">Add Commentary</label>
+                <div class="input-group">
+                  <input type="text" class="form-control" id="commentaryText" name="text" placeholder="Enter commentary..." required>
+                  <div class="input-group-text">
+                    <div class="form-check form-switch">
+                      <input class="form-check-input" type="checkbox" id="importantCheck" name="important">
+                      <label class="form-check-label" for="importantCheck">Important</label>
+                    </div>
+                  </div>
+                  <button type="submit" class="btn btn-primary">Add</button>
+                </div>
+              </div>
+            </form>
+          <% } else { %>
+            <div class="alert alert-info">
+              <i class="bi bi-info-circle-fill me-2"></i>
+              Live commentary is only available when the match is in progress. Change match status to "Live" to enable this feature.
+            </div>
+          <% } %>
+          
+          <div class="commentary-list mt-4">
+            <h6>Commentary Timeline</h6>
+            <% if (match.commentary && match.commentary.length > 0) { %>
+              <div class="table-responsive">
+                <table class="table table-hover align-middle">
+                  <thead>
+                    <tr>
+                      <th>Time</th>
+                      <th>Commentary</th>
+                      <th>Action</th>
+                    </tr>
+                  </thead>
+                  <tbody>
+                    <% match.commentary.sort((a, b) => new Date(b.time) - new Date(a.time)).forEach(comment => { %>
+                      <tr class="<%= comment.important ? 'table-warning' : '' %>">
+                        <td><%= new Date(comment.time).toLocaleTimeString() %></td>
+                        <td>
+                          <% if (comment.important) { %>
+                            <span class="badge bg-warning text-dark me-2">Important</span>
+                          <% } %>
+                          <%= comment.text %>
+                        </td>
+                        <td>
+                          <button class="btn btn-sm btn-danger delete-comment" data-comment-id="<%= comment._id %>">
+                            <i class="bi bi-trash"></i>
+                          </button>
+                        </td>
+                      </tr>
+                    <% }) %>
+                  </tbody>
+                </table>
+              </div>
+            <% } else { %>
+              <div class="text-center py-3">
+                <p class="text-muted mb-0">No commentary added yet</p>
+              </div>
+            <% } %>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+  
+  <!-- Live Match Updates Section -->
+  <div class="row">
+    <div class="col-12">
+      <div class="card mb-4">
+        <div class="card-header pb-0 d-flex justify-content-between align-items-center">
+          <h6>Match Updates</h6>
+          <div>
+            <span class="badge bg-<%= match.status === 'live' ? 'success' : 'secondary' %>">
+              <%= match.status.toUpperCase() %>
+            </span>
+          </div>
+        </div>
+        <div class="card-body">
+          <% if (match.status === 'live') { %>
+            <form id="updateForm" action="/admin/matches/update/<%= match._id %>" method="POST">
+              <div class="mb-3">
+                <label for="updateText" class="form-label">Add Match Update</label>
+                <div class="input-group">
+                  <input type="text" class="form-control" id="updateText" name="text" placeholder="Enter match update..." required>
+                  <div class="input-group-text">
+                    <div class="form-check form-switch">
+                      <input class="form-check-input" type="checkbox" id="updateImportantCheck" name="important">
+                      <label class="form-check-label" for="updateImportantCheck">Key Event</label>
+                    </div>
+                  </div>
+                  <button type="submit" class="btn btn-primary">Add</button>
+                </div>
+              </div>
+            </form>
+          <% } else { %>
+            <div class="alert alert-info">
+              <i class="bi bi-info-circle-fill me-2"></i>
+              Match updates are only available when the match is in progress. Change match status to "Live" to enable this feature.
+            </div>
+          <% } %>
+          
+          <div class="updates-list mt-4">
+            <h6>Updates Timeline</h6>
+            <% if (match.updates && match.updates.length > 0) { %>
+              <div class="table-responsive">
+                <table class="table table-hover align-middle">
+                  <thead>
+                    <tr>
+                      <th>Time</th>
+                      <th>Update</th>
+                      <th>Action</th>
+                    </tr>
+                  </thead>
+                  <tbody>
+                    <% match.updates.sort((a, b) => new Date(b.time) - new Date(a.time)).forEach(update => { %>
+                      <tr class="<%= update.important ? 'table-warning' : '' %>">
+                        <td><%= new Date(update.time).toLocaleTimeString() %></td>
+                        <td>
+                          <% if (update.important) { %>
+                            <span class="badge bg-warning text-dark me-2">Key Event</span>
+                          <% } %>
+                          <%= update.text %>
+                        </td>
+                        <td>
+                          <button class="btn btn-sm btn-danger delete-update" data-update-id="<%= update._id %>">
+                            <i class="bi bi-trash"></i>
+                          </button>
+                        </td>
+                      </tr>
+                    <% }) %>
+                  </tbody>
+                </table>
+              </div>
+            <% } else { %>
+              <div class="text-center py-3">
+                <p class="text-muted mb-0">No updates added yet</p>
+              </div>
+            <% } %>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+  
+  <!-- Sport-specific sections -->
+  <div class="row">
+    <div class="col-12">
+      <div class="card mb-4">
+        <div class="card-header pb-0">
+          <h6>Sport-Specific Details</h6>
+        </div>
+        <div class="card-body">
+          <ul class="nav nav-tabs" id="sportDetailsTabs" role="tablist">
+            <li class="nav-item" role="presentation">
+              <button class="nav-link active" id="cricket-tab" data-bs-toggle="tab" data-bs-target="#cricket" type="button" role="tab">Cricket</button>
+            </li>
+            <li class="nav-item" role="presentation">
+              <button class="nav-link" id="football-tab" data-bs-toggle="tab" data-bs-target="#football" type="button" role="tab">Football</button>
+            </li>
+            <li class="nav-item" role="presentation">
+              <button class="nav-link" id="basketball-tab" data-bs-toggle="tab" data-bs-target="#basketball" type="button" role="tab">Basketball</button>
+            </li>
+            <li class="nav-item" role="presentation">
+              <button class="nav-link" id="volleyball-tab" data-bs-toggle="tab" data-bs-target="#volleyball" type="button" role="tab">Volleyball</button>
+            </li>
+          </ul>
+          
+          <div class="tab-content p-3 border border-top-0 rounded-bottom" id="sportDetailsContent">
+            <!-- Cricket Tab -->
+            <div class="tab-pane fade show active" id="cricket" role="tabpanel">
+              <h6 class="mb-3">Innings</h6>
+              <div id="innings-container">
+                <% if (match.innings && match.innings.length > 0) { %>
+                  <% match.innings.forEach((inning, index) => { %>
+                    <div class="innings-entry border p-3 rounded mb-3">
+                      <div class="row g-3">
+                        <div class="col-md-3">
+                          <label class="form-label">Team</label>
+                          <input type="text" class="form-control innings-team" value="<%= inning.team %>" name="innings[<%= index %>][team]">
+                        </div>
+                        <div class="col-md-3">
+                          <label class="form-label">Runs</label>
+                          <input type="number" class="form-control innings-runs" value="<%= inning.runs %>" name="innings[<%= index %>][runs]">
+                        </div>
+                        <div class="col-md-3">
+                          <label class="form-label">Wickets</label>
+                          <input type="number" class="form-control innings-wickets" value="<%= inning.wickets %>" name="innings[<%= index %>][wickets]">
+                        </div>
+                        <div class="col-md-3">
+                          <label class="form-label">Overs</label>
+                          <input type="number" class="form-control innings-overs" value="<%= inning.overs %>" step="0.1" name="innings[<%= index %>][overs]">
+                        </div>
+                      </div>
+                    </div>
+                  <% }) %>
+                <% } else { %>
+                  <p class="text-muted">No innings data available</p>
+                <% } %>
+              </div>
+              <button type="button" class="btn btn-sm btn-outline-primary mt-2" id="add-innings">
+                <i class="bi bi-plus-circle"></i> Add Innings
+              </button>
+            </div>
+            
+            <!-- Football Tab -->
+            <div class="tab-pane fade" id="football" role="tabpanel">
+              <div class="row mb-4">
+                <div class="col-12">
+                  <h6 class="mb-3">Match Stats</h6>
+                  <div class="row g-3">
+                    <div class="col-md-3">
+                      <label class="form-label">Home Possession (%)</label>
+                      <input type="number" class="form-control" id="homePossession" name="stats[homePossession]" 
+                        value="<%= match.stats && match.stats.homePossession || '' %>" min="0" max="100">
+                    </div>
+                    <div class="col-md-3">
+                      <label class="form-label">Away Possession (%)</label>
+                      <input type="number" class="form-control" id="awayPossession" name="stats[awayPossession]" 
+                        value="<%= match.stats && match.stats.awayPossession || '' %>" min="0" max="100">
+                    </div>
+                    <div class="col-md-3">
+                      <label class="form-label">Home Shots</label>
+                      <input type="number" class="form-control" id="homeShots" name="stats[homeShots]" 
+                        value="<%= match.stats && match.stats.homeShots || '' %>" min="0">
+                    </div>
+                    <div class="col-md-3">
+                      <label class="form-label">Away Shots</label>
+                      <input type="number" class="form-control" id="awayShots" name="stats[awayShots]" 
+                        value="<%= match.stats && match.stats.awayShots || '' %>" min="0">
+                    </div>
+                    <div class="col-md-3">
+                      <label class="form-label">Home Corners</label>
+                      <input type="number" class="form-control" id="homeCorners" name="stats[homeCorners]" 
+                        value="<%= match.stats && match.stats.homeCorners || '' %>" min="0">
+                    </div>
+                    <div class="col-md-3">
+                      <label class="form-label">Away Corners</label>
+                      <input type="number" class="form-control" id="awayCorners" name="stats[awayCorners]" 
+                        value="<%= match.stats && match.stats.awayCorners || '' %>" min="0">
+                    </div>
+                  </div>
+                </div>
+              </div>
+              
+              <h6 class="mb-3">Goals</h6>
+              <div id="goals-container">
+                <% if (match.goals && match.goals.length > 0) { %>
+                  <% match.goals.forEach((goal, index) => { %>
+                    <div class="goal-entry border p-3 rounded mb-3">
+                      <div class="row g-3">
+                        <div class="col-md-4">
+                          <label class="form-label">Team</label>
+                          <select class="form-select goal-team" name="goals[<%= index %>][team]">
+                            <option value="home" <%= goal.team === 'home' ? 'selected' : '' %>>Home (<%= match.homeTeam %>)</option>
+                            <option value="away" <%= goal.team === 'away' ? 'selected' : '' %>>Away (<%= match.awayTeam %>)</option>
+                          </select>
+                        </div>
+                        <div class="col-md-4">
+                          <label class="form-label">Player</label>
+                          <input type="text" class="form-control goal-player" value="<%= goal.player %>" name="goals[<%= index %>][player]">
+                        </div>
+                        <div class="col-md-3">
+                          <label class="form-label">Minute</label>
+                          <input type="number" class="form-control goal-minute" value="<%= goal.minute %>" name="goals[<%= index %>][minute]">
+                        </div>
+                        <div class="col-md-1 d-flex align-items-end">
+                          <button type="button" class="btn btn-sm btn-outline-danger remove-goal">
+                            <i class="bi bi-trash"></i>
+                          </button>
+                        </div>
+                      </div>
+                    </div>
+                  <% }) %>
+                <% } else { %>
+                  <p class="text-muted">No goals data available</p>
+                <% } %>
+              </div>
+              <button type="button" class="btn btn-sm btn-outline-primary mt-2" id="add-goal">
+                <i class="bi bi-plus-circle"></i> Add Goal
+              </button>
+            </div>
+            
+            <!-- Basketball Tab -->
+            <div class="tab-pane fade" id="basketball" role="tabpanel">
+              <h6 class="mb-3">Quarter Scores</h6>
+              <div id="quarters-container">
+                <% if (match.quarters && match.quarters.length > 0) { %>
+                  <% match.quarters.forEach((quarter, index) => { %>
+                    <div class="quarter-entry border p-3 rounded mb-3">
+                      <div class="row g-3">
+                        <div class="col-md-4">
+                          <label class="form-label">Quarter</label>
+                          <input type="number" class="form-control quarter-num" value="<%= quarter.quarter %>" name="quarters[<%= index %>][quarter]" min="1" max="4">
+                        </div>
+                        <div class="col-md-4">
+                          <label class="form-label">Home Score</label>
+                          <input type="number" class="form-control quarter-home" value="<%= quarter.homeScore %>" name="quarters[<%= index %>][homeScore]" min="0">
+                        </div>
+                        <div class="col-md-4">
+                          <label class="form-label">Away Score</label>
+                          <input type="number" class="form-control quarter-away" value="<%= quarter.awayScore %>" name="quarters[<%= index %>][awayScore]" min="0">
+                        </div>
+                      </div>
+                    </div>
+                  <% }) %>
+                <% } else { %>
+                  <p class="text-muted">No quarter data available</p>
+                <% } %>
+              </div>
+              <button type="button" class="btn btn-sm btn-outline-primary mt-2" id="add-quarter">
+                <i class="bi bi-plus-circle"></i> Add Quarter
+              </button>
+            </div>
+            
+            <!-- Volleyball Tab -->
+            <div class="tab-pane fade" id="volleyball" role="tabpanel">
+              <h6 class="mb-3">Set Scores</h6>
+              <div id="sets-container">
+                <% if (match.sets && match.sets.length > 0) { %>
+                  <% match.sets.forEach((set, index) => { %>
+                    <div class="set-entry border p-3 rounded mb-3">
+                      <div class="row g-3">
+                        <div class="col-md-5">
+                          <label class="form-label">Home Score</label>
+                          <input type="number" class="form-control set-home" value="<%= set.homeScore %>" name="sets[<%= index %>][homeScore]" min="0">
+                        </div>
+                        <div class="col-md-5">
+                          <label class="form-label">Away Score</label>
+                          <input type="number" class="form-control set-away" value="<%= set.awayScore %>" name="sets[<%= index %>][awayScore]" min="0">
+                        </div>
+                        <div class="col-md-2 d-flex align-items-end">
+                          <button type="button" class="btn btn-sm btn-outline-danger remove-set">
+                            <i class="bi bi-trash"></i>
+                          </button>
+                        </div>
+                      </div>
+                    </div>
+                  <% }) %>
+                <% } else { %>
+                  <p class="text-muted">No set data available</p>
+                <% } %>
+              </div>
+              <button type="button" class="btn btn-sm btn-outline-primary mt-2" id="add-set">
+                <i class="bi bi-plus-circle"></i> Add Set
+              </button>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<script>
+  // Commentary form handling
+  document.addEventListener('DOMContentLoaded', function() {
+    const commentaryForm = document.getElementById('commentaryForm');
+    
+    if (commentaryForm) {
+      commentaryForm.addEventListener('submit', function(e) {
+        e.preventDefault();
+        
+        const formData = new FormData(commentaryForm);
+        const commentText = formData.get('text');
+        const isImportant = formData.get('important') === 'on';
+        
+        // Send the commentary via fetch
+        fetch(`/api/matches/<%= match._id %>/commentary`, {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/json',
+          },
+          body: JSON.stringify({
+            text: commentText,
+            important: isImportant
+          }),
+        })
+        .then(response => response.json())
+        .then(data => {
+          if (data.success) {
+            // Clear the form
+            commentaryForm.reset();
+            
+            // Reload the page to show the updated commentary
+            window.location.reload();
+          } else {
+            alert('Error adding commentary: ' + data.error);
+          }
+        })
+        .catch(error => {
+          console.error('Error:', error);
+          alert('Failed to add commentary. Please try again.');
+        });
+      });
+    }
+    
+    // Delete comment buttons
+    document.querySelectorAll('.delete-comment').forEach(button => {
+      button.addEventListener('click', function() {
+        if (confirm('Are you sure you want to delete this commentary?')) {
+          const commentId = this.getAttribute('data-comment-id');
+          
+          // Send request to delete the commentary
+          fetch(`/api/matches/<%= match._id %>/commentary/${commentId}`, {
+            method: 'DELETE'
+          })
+          .then(response => response.json())
+          .then(data => {
+            if (data.success) {
+              window.location.reload();
+            } else {
+              alert('Error deleting commentary: ' + data.error);
+            }
+          })
+          .catch(error => {
+            console.error('Error:', error);
+            alert('Failed to delete commentary. Please try again.');
+          });
+        }
+      });
+    });
+    
+    // Updates form handling
+    const updateForm = document.getElementById('updateForm');
+    
+    if (updateForm) {
+      updateForm.addEventListener('submit', function(e) {
+        e.preventDefault();
+        
+        const formData = new FormData(updateForm);
+        const updateText = formData.get('text');
+        const isImportant = formData.get('important') === 'on';
+        
+        // Send the update via fetch
+        fetch(`/api/matches/<%= match._id %>/update`, {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/json',
+          },
+          body: JSON.stringify({
+            text: updateText,
+            important: isImportant
+          }),
+        })
+        .then(response => response.json())
+        .then(data => {
+          if (data.success) {
+            // Clear the form
+            updateForm.reset();
+            
+            // Reload the page to show the updated list
+            window.location.reload();
+          } else {
+            alert('Error adding update: ' + data.error);
+          }
+        })
+        .catch(error => {
+          console.error('Error:', error);
+          alert('Failed to add update. Please try again.');
+        });
+      });
+    }
+    
+    // Delete update buttons
+    document.querySelectorAll('.delete-update').forEach(button => {
+      button.addEventListener('click', function() {
+        if (confirm('Are you sure you want to delete this update?')) {
+          const updateId = this.getAttribute('data-update-id');
+          
+          // Send request to delete the update
+          fetch(`/api/matches/<%= match._id %>/update/${updateId}`, {
+            method: 'DELETE'
+          })
+          .then(response => response.json())
+          .then(data => {
+            if (data.success) {
+              window.location.reload();
+            } else {
+              alert('Error deleting update: ' + data.error);
+            }
+          })
+          .catch(error => {
+            console.error('Error:', error);
+            alert('Failed to delete update. Please try again.');
+          });
+        }
+      });
+    });
+    
+    // Initialize tabs based on match category
+    const category = '<%= match.category %>';
+    if (category) {
+      const tabId = category.toLowerCase() + '-tab';
+      const tab = document.getElementById(tabId);
+      if (tab) {
+        const tabInstance = new bootstrap.Tab(tab);
+        tabInstance.show();
+      }
+    }
+    
+    // Add innings handler
+    const addInningsBtn = document.getElementById('add-innings');
+    if (addInningsBtn) {
+      addInningsBtn.addEventListener('click', function() {
+        const inningsContainer = document.getElementById('innings-container');
+        const inningsCount = inningsContainer.querySelectorAll('.innings-entry').length;
+        
+        const newInnings = document.createElement('div');
+        newInnings.className = 'innings-entry border p-3 rounded mb-3';
+        newInnings.innerHTML = `
+          <div class="row g-3">
+            <div class="col-md-3">
+              <label class="form-label">Team</label>
+              <input type="text" class="form-control innings-team" name="innings[${inningsCount}][team]">
+            </div>
+            <div class="col-md-3">
+              <label class="form-label">Runs</label>
+              <input type="number" class="form-control innings-runs" name="innings[${inningsCount}][runs]" value="0">
+            </div>
+            <div class="col-md-3">
+              <label class="form-label">Wickets</label>
+              <input type="number" class="form-control innings-wickets" name="innings[${inningsCount}][wickets]" value="0">
+            </div>
+            <div class="col-md-3">
+              <label class="form-label">Overs</label>
+              <input type="number" class="form-control innings-overs" name="innings[${inningsCount}][overs]" value="0" step="0.1">
+            </div>
+          </div>
+        `;
+        
+        inningsContainer.appendChild(newInnings);
+      });
+    }
+    
+    // Add goal handler
+    const addGoalBtn = document.getElementById('add-goal');
+    if (addGoalBtn) {
+      addGoalBtn.addEventListener('click', function() {
+        const goalsContainer = document.getElementById('goals-container');
+        const firstChild = goalsContainer.firstElementChild;
+        
+        if (firstChild && firstChild.tagName === 'P') {
+          goalsContainer.innerHTML = '';
+        }
+        
+        const goalsCount = goalsContainer.querySelectorAll('.goal-entry').length;
+        
+        const newGoal = document.createElement('div');
+        newGoal.className = 'goal-entry border p-3 rounded mb-3';
+        newGoal.innerHTML = `
+          <div class="row g-3">
+            <div class="col-md-4">
+              <label class="form-label">Team</label>
+              <select class="form-select goal-team" name="goals[${goalsCount}][team]">
+                <option value="home">Home (<%= match.homeTeam %>)</option>
+                <option value="away">Away (<%= match.awayTeam %>)</option>
+              </select>
+            </div>
+            <div class="col-md-4">
+              <label class="form-label">Player</label>
+              <input type="text" class="form-control goal-player" name="goals[${goalsCount}][player]">
+            </div>
+            <div class="col-md-3">
+              <label class="form-label">Minute</label>
+              <input type="number" class="form-control goal-minute" name="goals[${goalsCount}][minute]" value="1" min="1">
+            </div>
+            <div class="col-md-1 d-flex align-items-end">
+              <button type="button" class="btn btn-sm btn-outline-danger remove-goal">
+                <i class="bi bi-trash"></i>
+              </button>
+            </div>
+          </div>
+        `;
+        
+        goalsContainer.appendChild(newGoal);
+        
+        // Add event listener to remove button
+        newGoal.querySelector('.remove-goal').addEventListener('click', function() {
+          goalsContainer.removeChild(newGoal);
+          
+          // If no goals left, show message
+          if (goalsContainer.querySelectorAll('.goal-entry').length === 0) {
+            goalsContainer.innerHTML = '<p class="text-muted">No goals data available</p>';
+          }
+        });
+      });
+    }
+    
+    // Add quarter handler
+    const addQuarterBtn = document.getElementById('add-quarter');
+    if (addQuarterBtn) {
+      addQuarterBtn.addEventListener('click', function() {
+        const quartersContainer = document.getElementById('quarters-container');
+        const firstChild = quartersContainer.firstElementChild;
+        
+        if (firstChild && firstChild.tagName === 'P') {
+          quartersContainer.innerHTML = '';
+        }
+        
+        const quartersCount = quartersContainer.querySelectorAll('.quarter-entry').length;
+        
+        const newQuarter = document.createElement('div');
+        newQuarter.className = 'quarter-entry border p-3 rounded mb-3';
+        newQuarter.innerHTML = `
+          <div class="row g-3">
+            <div class="col-md-4">
+              <label class="form-label">Quarter</label>
+              <input type="number" class="form-control quarter-num" name="quarters[${quartersCount}][quarter]" value="${quartersCount + 1}" min="1" max="4">
+            </div>
+            <div class="col-md-4">
+              <label class="form-label">Home Score</label>
+              <input type="number" class="form-control quarter-home" name="quarters[${quartersCount}][homeScore]" value="0" min="0">
+            </div>
+            <div class="col-md-4">
+              <label class="form-label">Away Score</label>
+              <input type="number" class="form-control quarter-away" name="quarters[${quartersCount}][awayScore]" value="0" min="0">
+            </div>
+          </div>
+        `;
+        
+        quartersContainer.appendChild(newQuarter);
+      });
+    }
+    
+    // Add set handler
+    const addSetBtn = document.getElementById('add-set');
+    if (addSetBtn) {
+      addSetBtn.addEventListener('click', function() {
+        const setsContainer = document.getElementById('sets-container');
+        const firstChild = setsContainer.firstElementChild;
+        
+        if (firstChild && firstChild.tagName === 'P') {
+          setsContainer.innerHTML = '';
+        }
+        
+        const setsCount = setsContainer.querySelectorAll('.set-entry').length;
+        
+        const newSet = document.createElement('div');
+        newSet.className = 'set-entry border p-3 rounded mb-3';
+        newSet.innerHTML = `
+          <div class="row g-3">
+            <div class="col-md-5">
+              <label class="form-label">Home Score</label>
+              <input type="number" class="form-control set-home" name="sets[${setsCount}][homeScore]" value="0" min="0">
+            </div>
+            <div class="col-md-5">
+              <label class="form-label">Away Score</label>
+              <input type="number" class="form-control set-away" name="sets[${setsCount}][awayScore]" value="0" min="0">
+            </div>
+            <div class="col-md-2 d-flex align-items-end">
+              <button type="button" class="btn btn-sm btn-outline-danger remove-set">
+                <i class="bi bi-trash"></i>
+              </button>
+            </div>
+          </div>
+        `;
+        
+        setsContainer.appendChild(newSet);
+        
+        // Add event listener to remove button
+        newSet.querySelector('.remove-set').addEventListener('click', function() {
+          setsContainer.removeChild(newSet);
+          
+          // If no sets left, show message
+          if (setsContainer.querySelectorAll('.set-entry').length === 0) {
+            setsContainer.innerHTML = '<p class="text-muted">No set data available</p>';
+          }
+        });
+      });
+    }
+    
+    // Add remove event listeners to existing remove buttons
+    document.querySelectorAll('.remove-goal').forEach(button => {
+      button.addEventListener('click', function() {
+        const goalEntry = this.closest('.goal-entry');
+        const goalsContainer = document.getElementById('goals-container');
+        
+        goalsContainer.removeChild(goalEntry);
+        
+        // If no goals left, show message
+        if (goalsContainer.querySelectorAll('.goal-entry').length === 0) {
+          goalsContainer.innerHTML = '<p class="text-muted">No goals data available</p>';
+        }
+      });
+    });
+    
+    document.querySelectorAll('.remove-set').forEach(button => {
+      button.addEventListener('click', function() {
+        const setEntry = this.closest('.set-entry');
+        const setsContainer = document.getElementById('sets-container');
+        
+        setsContainer.removeChild(setEntry);
+        
+        // If no sets left, show message
+        if (setsContainer.querySelectorAll('.set-entry').length === 0) {
+          setsContainer.innerHTML = '<p class="text-muted">No set data available</p>';
+        }
+      });
+    });
+  });
+</script>
+
+<%- include('../partials/footer') %> 

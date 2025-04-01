@@ -13,6 +13,13 @@
         </div>
     </div>
 
+    <!-- Alert for any API errors -->
+    <div id="profile-api-alert" class="alert alert-danger d-none">
+        <strong>Error loading profile data!</strong> 
+        <p>We're having trouble connecting to the server. Your changes may not be saved until this is resolved.</p>
+        <button type="button" class="btn-close" data-bs-dismiss="alert" aria-label="Close"></button>
+    </div>
+
     <div class="row">
         <!-- Left sidebar for navigation -->
         <div class="col-md-3 mb-4">
@@ -219,5 +226,52 @@
     </div>
 </div>
 
+<noscript>
+    <style>
+        /* Ensure forms are visible even if JavaScript is disabled */
+        form {
+            opacity: 1 !important;
+            pointer-events: auto !important;
+        }
+        #profile-loader {
+            display: none !important;
+        }
+    </style>
+</noscript>
+
 <script src="/js/user/profile.js"></script>
+
+<!-- Pass user data to client-side JavaScript -->
+<script>
+    // Make user data available to the profile.js script
+    window.user = <%- JSON.stringify(user || {})
+        .replace(/</g, '\\u003c')
+        .replace(/>/g, '\\u003e') 
+        .replace(/&/g, '\\u0026') %>;
+    
+    console.log('Session user data:', window.user);
+    
+    // Handle API errors
+    window.addEventListener('DOMContentLoaded', function() {
+        // Make all form controls accessible in case of script errors
+        setTimeout(() => {
+            document.querySelectorAll('form').forEach(form => {
+                form.style.opacity = '1';
+                form.style.pointerEvents = 'auto';
+            });
+        }, 100);
+        
+        // Check for network connectivity issues
+        window.addEventListener('offline', function() {
+            document.getElementById('profile-api-alert').classList.remove('d-none');
+        });
+        
+        window.addEventListener('online', function() {
+            document.getElementById('profile-api-alert').classList.add('d-none');
+            // Reload the page to get fresh data
+            window.location.reload();
+        });
+    });
+</script>
+
 <%- include('../partials/footer') %> 

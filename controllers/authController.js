@@ -89,9 +89,9 @@ exports.register = async (req, res) => {
 // Login user
 exports.login = async (req, res) => {
   try {
-    const { identifier, password } = req.body;
+    const { identifier, password, rememberMe } = req.body;
     
-    console.log('Login attempt:', { identifier });
+    console.log('Login attempt:', { identifier, rememberMe });
     
     // Check if identifier and password exist
     if (!identifier || !password) {
@@ -119,8 +119,11 @@ exports.login = async (req, res) => {
       return res.status(401).json({ success: false, message: 'Invalid credentials' });
     }
     
-    // Generate token
-    const token = generateToken(user._id);
+    // Generate token with longer expiration if rememberMe is true
+    const tokenExpiresIn = rememberMe ? '30d' : process.env.JWT_EXPIRES_IN || '1d';
+    const token = jwt.sign({ id: user._id }, process.env.JWT_SECRET, {
+      expiresIn: tokenExpiresIn
+    });
     
     // Clear any existing session data
     if (req.session) {
@@ -138,6 +141,13 @@ exports.login = async (req, res) => {
           email: user.email,
           role: user.role
         };
+        
+        // If rememberMe is true, set a longer cookie maxAge
+        if (rememberMe) {
+          // 30 days in milliseconds
+          req.session.cookie.maxAge = 30 * 24 * 60 * 60 * 1000;
+          console.log('Remember Me enabled - Session extended to 30 days');
+        }
         
         // Save the session
         req.session.save(function(err) {
@@ -173,9 +183,9 @@ exports.login = async (req, res) => {
 // Admin login
 exports.adminLogin = async (req, res) => {
   try {
-    const { identifier, password } = req.body;
+    const { identifier, password, rememberMe } = req.body;
     
-    console.log('Admin login attempt:', { identifier });
+    console.log('Admin login attempt:', { identifier, rememberMe });
     
     // Check if identifier and password exist
     if (!identifier || !password) {
@@ -203,8 +213,11 @@ exports.adminLogin = async (req, res) => {
       return res.status(401).json({ success: false, message: 'Invalid credentials' });
     }
     
-    // Generate token
-    const token = generateToken(user._id);
+    // Generate token with longer expiration if rememberMe is true
+    const tokenExpiresIn = rememberMe ? '30d' : process.env.JWT_EXPIRES_IN || '1d';
+    const token = jwt.sign({ id: user._id }, process.env.JWT_SECRET, {
+      expiresIn: tokenExpiresIn
+    });
     
     // Clear any existing session data
     if (req.session) {
@@ -222,6 +235,13 @@ exports.adminLogin = async (req, res) => {
           email: user.email,
           role: user.role
         };
+        
+        // If rememberMe is true, set a longer cookie maxAge
+        if (rememberMe) {
+          // 30 days in milliseconds
+          req.session.cookie.maxAge = 30 * 24 * 60 * 60 * 1000;
+          console.log('Remember Me enabled - Session extended to 30 days');
+        }
         
         // Save the session
         req.session.save(function(err) {

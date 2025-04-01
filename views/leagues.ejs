@@ -1,0 +1,410 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title><%= title %> | Khelkud Nepal</title>
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/css/bootstrap.min.css" rel="stylesheet">
+    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.3/font/bootstrap-icons.min.css">
+    <link rel="stylesheet" href="/css/styles.css">
+    <style>
+        .league-card {
+            border-left: 4px solid #007bff;
+            transition: transform 0.2s;
+        }
+        
+        .league-card:hover {
+            transform: translateY(-3px);
+            box-shadow: 0 5px 15px rgba(0,0,0,0.1);
+        }
+        
+        .league-card.cricket {
+            border-left-color: #28a745;
+        }
+        
+        .league-card.football {
+            border-left-color: #dc3545;
+        }
+        
+        .league-card.basketball {
+            border-left-color: #fd7e14;
+        }
+        
+        .league-card.volleyball {
+            border-left-color: #6f42c1;
+        }
+        
+        .league-card.other {
+            border-left-color: #6c757d;
+        }
+        
+        .status-badge {
+            font-size: 0.8rem;
+            padding: 0.25rem 0.5rem;
+        }
+        
+        .team-logo {
+            width: 30px;
+            height: 30px;
+            object-fit: contain;
+        }
+        
+        .league-logo {
+            width: 80px;
+            height: 80px;
+            object-fit: contain;
+        }
+        
+        .team-row {
+            cursor: pointer;
+            transition: background-color 0.2s;
+        }
+        
+        .team-row:hover {
+            background-color: rgba(0,123,255,0.05);
+        }
+        
+        .team-news-container {
+            max-height: 300px;
+            overflow-y: auto;
+        }
+        
+        .table-responsive {
+            max-height: 400px;
+            overflow-y: auto;
+        }
+    </style>
+</head>
+<body>
+    <%- include('./partials/header') %>
+
+    <div class="container mt-4 mb-5">
+        <h1 class="mb-4">Nepali Leagues</h1>
+        
+        <!-- Sports Categories Tabs -->
+        <ul class="nav nav-tabs mb-4" id="leaguesTab" role="tablist">
+            <li class="nav-item" role="presentation">
+                <button class="nav-link active" id="all-tab" data-bs-toggle="tab" data-bs-target="#all" type="button" role="tab" aria-controls="all" aria-selected="true">All Leagues</button>
+            </li>
+            <% categories.forEach(category => { %>
+                <li class="nav-item" role="presentation">
+                    <button class="nav-link" id="<%= category.toLowerCase() %>-tab" data-bs-toggle="tab" data-bs-target="#<%= category.toLowerCase() %>" type="button" role="tab" aria-controls="<%= category.toLowerCase() %>" aria-selected="false"><%= category %></button>
+                </li>
+            <% }); %>
+        </ul>
+        
+        <!-- Tab Contents -->
+        <div class="tab-content" id="leaguesTabContent">
+            <!-- All Leagues Tab -->
+            <div class="tab-pane fade show active" id="all" role="tabpanel" aria-labelledby="all-tab">
+                <div class="row">
+                    <div class="col-lg-12">
+                        <% let hasAnyLeagues = false; %>
+                        <% categories.forEach(category => { %>
+                            <% if (featuredLeagues[category] && featuredLeagues[category].length > 0) { %>
+                                <% hasAnyLeagues = true; %>
+                                <h3 class="mt-4 mb-3"><%= category %> Leagues</h3>
+                                <div class="row">
+                                    <% featuredLeagues[category].forEach(league => { %>
+                                        <div class="col-md-6 mb-4">
+                                            <div class="card league-card <%= category.toLowerCase() %>">
+                                                <div class="card-body">
+                                                    <div class="d-flex align-items-center">
+                                                        <img src="<%= league.logo %>" alt="<%= league.name %>" class="league-logo me-3">
+                                                        <div>
+                                                            <h4 class="card-title mb-1"><%= league.name %></h4>
+                                                            <p class="card-text text-muted mb-1"><%= league.season %></p>
+                                                            <span class="badge bg-<%= league.status === 'ongoing' ? 'success' : (league.status === 'upcoming' ? 'primary' : 'secondary') %> status-badge">
+                                                                <%= league.status.charAt(0).toUpperCase() + league.status.slice(1) %>
+                                                            </span>
+                                                        </div>
+                                                    </div>
+                                                    <hr>
+                                                    <% if (league.teams && league.teams.length > 0) { %>
+                                                        <h6>Top Teams</h6>
+                                                        <ul class="list-group list-group-flush">
+                                                            <% league.teams.slice(0, 3).forEach(team => { %>
+                                                                <li class="list-group-item d-flex justify-content-between align-items-center px-0">
+                                                                    <div class="d-flex align-items-center">
+                                                                        <img src="<%= team.logo %>" alt="<%= team.name %>" class="team-logo me-2">
+                                                                        <span><%= team.name %></span>
+                                                                    </div>
+                                                                    <span class="badge bg-primary rounded-pill"><%= team.points %> pts</span>
+                                                                </li>
+                                                            <% }); %>
+                                                        </ul>
+                                                    <% } else { %>
+                                                        <p class="text-muted">No teams available yet.</p>
+                                                    <% } %>
+                                                    <div class="mt-3 text-center">
+                                                        <a href="/leagues/<%= league._id %>" class="btn btn-outline-primary">View Details</a>
+                                                    </div>
+                                                </div>
+                                            </div>
+                                        </div>
+                                    <% }); %>
+                                </div>
+                            <% } %>
+                        <% }); %>
+                        
+                        <% if (!hasAnyLeagues) { %>
+                            <div class="text-center py-5">
+                                <i class="bi bi-calendar-x" style="font-size: 3rem; color: #6c757d;"></i>
+                                <p class="mt-3">No active leagues available at the moment.</p>
+                            </div>
+                        <% } %>
+                    </div>
+                </div>
+            </div>
+            
+            <!-- Category-specific tabs -->
+            <% categories.forEach(category => { %>
+                <div class="tab-pane fade" id="<%= category.toLowerCase() %>" role="tabpanel" aria-labelledby="<%= category.toLowerCase() %>-tab">
+                    <div class="row">
+                        <div class="col-lg-12">
+                            <h3 class="mb-3"><%= category %> Leagues</h3>
+                            
+                            <% if (featuredLeagues[category] && featuredLeagues[category].length > 0) { %>
+                                <div class="row">
+                                    <% featuredLeagues[category].forEach(league => { %>
+                                        <div class="col-md-6 mb-4">
+                                            <div class="card league-card <%= category.toLowerCase() %>">
+                                                <div class="card-body">
+                                                    <div class="d-flex align-items-center">
+                                                        <img src="<%= league.logo %>" alt="<%= league.name %>" class="league-logo me-3">
+                                                        <div>
+                                                            <h4 class="card-title mb-1"><%= league.name %></h4>
+                                                            <p class="card-text text-muted mb-1"><%= league.season %></p>
+                                                            <span class="badge bg-<%= league.status === 'ongoing' ? 'success' : (league.status === 'upcoming' ? 'primary' : 'secondary') %> status-badge">
+                                                                <%= league.status.charAt(0).toUpperCase() + league.status.slice(1) %>
+                                                            </span>
+                                                        </div>
+                                                    </div>
+                                                    <hr>
+                                                    <% if (league.teams && league.teams.length > 0) { %>
+                                                        <h6>Current Standings</h6>
+                                                        <div class="table-responsive">
+                                                            <table class="table table-sm table-hover">
+                                                                <thead>
+                                                                    <tr>
+                                                                        <th>Team</th>
+                                                                        <th>P</th>
+                                                                        <th>W</th>
+                                                                        <th>D</th>
+                                                                        <th>L</th>
+                                                                        <th>Pts</th>
+                                                                    </tr>
+                                                                </thead>
+                                                                <tbody>
+                                                                    <% league.teams.slice(0, 5).forEach((team, index) => { %>
+                                                                        <tr class="team-row" data-league-id="<%= league._id %>" data-team-name="<%= team.name.toLowerCase().replace(/\s+/g, '-') %>">
+                                                                            <td>
+                                                                                <div class="d-flex align-items-center">
+                                                                                    <span class="me-2"><%= index + 1 %>.</span>
+                                                                                    <img src="<%= team.logo %>" alt="<%= team.name %>" class="team-logo me-2">
+                                                                                    <span><%= team.name %></span>
+                                                                                </div>
+                                                                            </td>
+                                                                            <td><%= team.played %></td>
+                                                                            <td><%= team.won %></td>
+                                                                            <td><%= team.drawn %></td>
+                                                                            <td><%= team.lost %></td>
+                                                                            <td><strong><%= team.points %></strong></td>
+                                                                        </tr>
+                                                                    <% }); %>
+                                                                </tbody>
+                                                            </table>
+                                                        </div>
+                                                    <% } else { %>
+                                                        <p class="text-muted">No teams available yet.</p>
+                                                    <% } %>
+                                                    <div class="mt-3 text-center">
+                                                        <a href="/leagues/<%= league._id %>" class="btn btn-outline-primary">View Full Details</a>
+                                                    </div>
+                                                </div>
+                                            </div>
+                                        </div>
+                                    <% }); %>
+                                </div>
+                            <% } else { %>
+                                <div class="text-center py-5">
+                                    <i class="bi bi-calendar-x" style="font-size: 3rem; color: #6c757d;"></i>
+                                    <p class="mt-3">No <%= category %> leagues available at the moment.</p>
+                                </div>
+                            <% } %>
+                        </div>
+                    </div>
+                </div>
+            <% }); %>
+        </div>
+        
+        <!-- Team News Modal -->
+        <div class="modal fade" id="teamNewsModal" tabindex="-1" aria-labelledby="teamNewsModalLabel" aria-hidden="true">
+            <div class="modal-dialog modal-lg">
+                <div class="modal-content">
+                    <div class="modal-header">
+                        <h5 class="modal-title" id="teamNewsModalLabel">Team News</h5>
+                        <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+                    </div>
+                    <div class="modal-body">
+                        <div class="d-flex align-items-center mb-3 team-info">
+                            <img src="" alt="" class="team-logo me-3" id="modalTeamLogo">
+                            <div>
+                                <h4 id="modalTeamName"></h4>
+                                <p class="text-muted mb-0" id="modalTeamLeague"></p>
+                            </div>
+                        </div>
+                        <hr>
+                        <div class="team-stats mb-3">
+                            <h5>Team Statistics</h5>
+                            <div class="row text-center">
+                                <div class="col-3">
+                                    <div class="border rounded p-2">
+                                        <div class="text-muted small">Played</div>
+                                        <div class="fw-bold" id="modalTeamPlayed">0</div>
+                                    </div>
+                                </div>
+                                <div class="col-3">
+                                    <div class="border rounded p-2">
+                                        <div class="text-muted small">Won</div>
+                                        <div class="fw-bold" id="modalTeamWon">0</div>
+                                    </div>
+                                </div>
+                                <div class="col-3">
+                                    <div class="border rounded p-2">
+                                        <div class="text-muted small">Drawn</div>
+                                        <div class="fw-bold" id="modalTeamDrawn">0</div>
+                                    </div>
+                                </div>
+                                <div class="col-3">
+                                    <div class="border rounded p-2">
+                                        <div class="text-muted small">Lost</div>
+                                        <div class="fw-bold" id="modalTeamLost">0</div>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                        <hr>
+                        <h5>Latest News</h5>
+                        <div class="team-news-container" id="teamNewsContainer">
+                            <div class="text-center py-3">
+                                <div class="spinner-border text-primary" role="status">
+                                    <span class="visually-hidden">Loading...</span>
+                                </div>
+                                <p class="mt-2">Loading team news...</p>
+                            </div>
+                        </div>
+                    </div>
+                    <div class="modal-footer">
+                        <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Close</button>
+                        <a href="#" class="btn btn-primary" id="viewTeamDetailsBtn">View Full Team Profile</a>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <%- include('./partials/footer') %>
+
+    <script>
+        document.addEventListener('DOMContentLoaded', function() {
+            // Handle team row clicks
+            document.querySelectorAll('.team-row').forEach(row => {
+                row.addEventListener('click', function() {
+                    const leagueId = this.getAttribute('data-league-id');
+                    const teamName = this.getAttribute('data-team-name');
+                    
+                    if (leagueId && teamName) {
+                        openTeamNewsModal(leagueId, teamName);
+                    }
+                });
+            });
+            
+            // Function to open the team news modal
+            function openTeamNewsModal(leagueId, teamName) {
+                console.log(`Opening modal for team: ${teamName} in league: ${leagueId}`);
+                
+                // Show the modal
+                const modal = new bootstrap.Modal(document.getElementById('teamNewsModal'));
+                modal.show();
+                
+                // Set the view team details button URL
+                document.getElementById('viewTeamDetailsBtn').href = `/leagues/${leagueId}/teams/${teamName}`;
+                
+                // Fetch team data and news
+                fetch(`/api/leagues/${leagueId}/teams/${teamName}/news`)
+                    .then(response => {
+                        if (!response.ok) {
+                            throw new Error('Failed to fetch team data');
+                        }
+                        return response.json();
+                    })
+                    .then(data => {
+                        if (data.success) {
+                            const { team, news } = data.data;
+                            
+                            // Update modal with team info
+                            document.getElementById('modalTeamName').textContent = team.name;
+                            document.getElementById('modalTeamLogo').src = team.logo;
+                            document.getElementById('modalTeamLogo').alt = team.name;
+                            
+                            // Update team stats
+                            document.getElementById('modalTeamPlayed').textContent = team.played;
+                            document.getElementById('modalTeamWon').textContent = team.won;
+                            document.getElementById('modalTeamDrawn').textContent = team.drawn;
+                            document.getElementById('modalTeamLost').textContent = team.lost;
+                            
+                            // Update team news
+                            const newsContainer = document.getElementById('teamNewsContainer');
+                            
+                            if (news && news.length > 0) {
+                                let newsHtml = '';
+                                
+                                news.forEach(article => {
+                                    const date = new Date(article.publishedAt);
+                                    const formattedDate = date.toLocaleDateString('en-US', {
+                                        year: 'numeric',
+                                        month: 'short',
+                                        day: 'numeric'
+                                    });
+                                    
+                                    newsHtml += `
+                                        <div class="card mb-3">
+                                            <div class="card-body">
+                                                <h5 class="card-title">${article.title}</h5>
+                                                <h6 class="card-subtitle mb-2 text-muted">${formattedDate}</h6>
+                                                <p class="card-text">${article.summary || article.excerpt || ''}</p>
+                                                <a href="/news/${article._id}" class="card-link">Read More</a>
+                                            </div>
+                                        </div>
+                                    `;
+                                });
+                                
+                                newsContainer.innerHTML = newsHtml;
+                            } else {
+                                newsContainer.innerHTML = `
+                                    <div class="text-center py-4">
+                                        <i class="bi bi-newspaper" style="font-size: 2rem; color: #6c757d;"></i>
+                                        <p class="mt-2">No recent news available for this team.</p>
+                                    </div>
+                                `;
+                            }
+                        } else {
+                            throw new Error(data.error || 'Failed to load team data');
+                        }
+                    })
+                    .catch(error => {
+                        console.error('Error loading team data:', error);
+                        
+                        document.getElementById('teamNewsContainer').innerHTML = `
+                            <div class="alert alert-danger">
+                                <i class="bi bi-exclamation-triangle-fill"></i> 
+                                Error loading team data: ${error.message}. Please try again later.
+                            </div>
+                        `;
+                    });
+            }
+        });
+    </script>
+</body>
+</html> 

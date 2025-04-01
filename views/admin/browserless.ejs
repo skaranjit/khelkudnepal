@@ -1,0 +1,290 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <%- include('../partials/head') %>
+  <title>Browserless Status | Khelkud Nepal Admin</title>
+  <style>
+    .status-card {
+      margin-bottom: 2rem;
+    }
+    .log-container {
+      background-color: #1e1e1e;
+      color: #ddd;
+      padding: 1rem;
+      border-radius: 4px;
+      font-family: monospace;
+      height: 300px;
+      overflow-y: auto;
+    }
+    .log-line {
+      margin: 0;
+      padding: 2px 0;
+    }
+    .success-line {
+      color: #4caf50;
+    }
+    .error-line {
+      color: #f44336;
+    }
+    .warning-line {
+      color: #ff9800;
+    }
+    .info-line {
+      color: #2196f3;
+    }
+  </style>
+</head>
+<body>
+  <div class="container-fluid">
+    <div class="row">
+      <%- include('../partials/admin-sidebar') %>
+      
+      <main class="col-md-9 ms-sm-auto col-lg-10 px-md-4">
+        <div class="d-flex justify-content-between flex-wrap flex-md-nowrap align-items-center pt-3 pb-2 mb-3 border-bottom">
+          <h1 class="h2">Browserless Status</h1>
+          <div class="btn-toolbar mb-2 mb-md-0">
+            <button id="testConnection" class="btn btn-sm btn-outline-primary me-2">
+              <i class="bi bi-arrow-repeat"></i> Test Connection
+            </button>
+            <a href="/admin/dashboard" class="btn btn-sm btn-outline-secondary">
+              <i class="bi bi-arrow-left"></i> Back to Dashboard
+            </a>
+          </div>
+        </div>
+        
+        <div class="row">
+          <div class="col-md-6">
+            <div class="card status-card">
+              <div class="card-header">
+                <h5 class="card-title mb-0">Browserless Status</h5>
+              </div>
+              <div class="card-body">
+                <div class="d-flex align-items-center mb-3">
+                  <div id="status-indicator" class="me-2">
+                    <div class="spinner-border spinner-border-sm text-primary" role="status">
+                      <span class="visually-hidden">Loading...</span>
+                    </div>
+                  </div>
+                  <div id="status-text">Checking connection status...</div>
+                </div>
+                
+                <dl class="row">
+                  <dt class="col-sm-4">API Key</dt>
+                  <dd class="col-sm-8" id="api-key-status">Checking...</dd>
+                  
+                  <dt class="col-sm-4">Connection</dt>
+                  <dd class="col-sm-8" id="connection-status">Checking...</dd>
+                  
+                  <dt class="col-sm-4">Browser Type</dt>
+                  <dd class="col-sm-8" id="browser-type">Checking...</dd>
+                </dl>
+              </div>
+            </div>
+            
+            <div class="card status-card">
+              <div class="card-header">
+                <h5 class="card-title mb-0">Configuration</h5>
+              </div>
+              <div class="card-body">
+                <form id="config-form">
+                  <div class="mb-3">
+                    <label for="apiKey" class="form-label">Browserless API Key</label>
+                    <div class="input-group">
+                      <input type="text" class="form-control" id="apiKey" name="apiKey" placeholder="Enter your Browserless API key" value="<%= process.env.BROWSERLESS_API_KEY || '' %>">
+                      <button class="btn btn-outline-secondary" type="button" id="showApiKey">
+                        <i class="bi bi-eye"></i>
+                      </button>
+                    </div>
+                    <div class="form-text">Get your API key from <a href="https://browserless.io" target="_blank">browserless.io</a></div>
+                  </div>
+                  
+                  <button type="submit" class="btn btn-primary">Save Configuration</button>
+                </form>
+              </div>
+            </div>
+          </div>
+          
+          <div class="col-md-6">
+            <div class="card status-card">
+              <div class="card-header">
+                <h5 class="card-title mb-0">Test Results</h5>
+              </div>
+              <div class="card-body">
+                <div class="log-container" id="log-output">
+                  <p class="log-line info-line">Click "Test Connection" to run a Browserless connection test...</p>
+                </div>
+              </div>
+            </div>
+            
+            <div class="card status-card">
+              <div class="card-header">
+                <h5 class="card-title mb-0">Screenshot</h5>
+              </div>
+              <div class="card-body text-center">
+                <div id="screenshot-container">
+                  <p class="text-muted">No screenshot available. Run a test to generate one.</p>
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
+      </main>
+    </div>
+  </div>
+  
+  <%- include('../partials/admin-scripts') %>
+  
+  <script>
+    document.addEventListener('DOMContentLoaded', function() {
+      // Check connection status on page load
+      checkConnectionStatus();
+      
+      // Toggle API key visibility
+      document.getElementById('showApiKey').addEventListener('click', function() {
+        const apiKeyInput = document.getElementById('apiKey');
+        const showBtn = document.getElementById('showApiKey');
+        
+        if (apiKeyInput.type === 'password') {
+          apiKeyInput.type = 'text';
+          showBtn.innerHTML = '<i class="bi bi-eye-slash"></i>';
+        } else {
+          apiKeyInput.type = 'password';
+          showBtn.innerHTML = '<i class="bi bi-eye"></i>';
+        }
+      });
+      
+      // Initialize apiKey as password type
+      document.getElementById('apiKey').type = 'password';
+      
+      // Handle test connection button
+      document.getElementById('testConnection').addEventListener('click', function() {
+        runConnectionTest();
+      });
+      
+      // Handle configuration form submission
+      document.getElementById('config-form').addEventListener('submit', function(e) {
+        e.preventDefault();
+        
+        const apiKey = document.getElementById('apiKey').value.trim();
+        
+        // Send to server to update the API key
+        fetch('/admin/api/browserless/config', {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/json'
+          },
+          body: JSON.stringify({ apiKey })
+        })
+        .then(response => response.json())
+        .then(data => {
+          if (data.success) {
+            alert('Configuration saved successfully!');
+            checkConnectionStatus();
+          } else {
+            alert('Error saving configuration: ' + data.error);
+          }
+        })
+        .catch(error => {
+          console.error('Error saving configuration:', error);
+          alert('Error saving configuration. See console for details.');
+        });
+      });
+      
+      // Function to check connection status
+      function checkConnectionStatus() {
+        fetch('/admin/api/browserless/status')
+          .then(response => response.json())
+          .then(data => {
+            updateStatusDisplay(data);
+          })
+          .catch(error => {
+            console.error('Error checking connection status:', error);
+            document.getElementById('status-indicator').innerHTML = '<i class="bi bi-exclamation-triangle-fill text-danger"></i>';
+            document.getElementById('status-text').textContent = 'Error checking connection status';
+            document.getElementById('api-key-status').textContent = 'Error';
+            document.getElementById('connection-status').textContent = 'Error';
+            document.getElementById('browser-type').textContent = 'Error';
+          });
+      }
+      
+      // Function to update status display
+      function updateStatusDisplay(data) {
+        // Update status indicator
+        if (data.connected) {
+          document.getElementById('status-indicator').innerHTML = '<i class="bi bi-check-circle-fill text-success"></i>';
+          document.getElementById('status-text').textContent = 'Connected successfully';
+        } else {
+          document.getElementById('status-indicator').innerHTML = '<i class="bi bi-x-circle-fill text-danger"></i>';
+          document.getElementById('status-text').textContent = 'Not connected';
+        }
+        
+        // Update API key status
+        if (data.apiKeyValid) {
+          document.getElementById('api-key-status').innerHTML = '<span class="text-success">Valid</span>';
+        } else {
+          document.getElementById('api-key-status').innerHTML = '<span class="text-danger">Invalid or not configured</span>';
+        }
+        
+        // Update connection status
+        document.getElementById('connection-status').textContent = data.connected ? 'Connected' : 'Not connected';
+        
+        // Update browser type
+        document.getElementById('browser-type').textContent = data.browserType || 'Unknown';
+      }
+      
+      // Function to run connection test
+      function runConnectionTest() {
+        const logOutput = document.getElementById('log-output');
+        logOutput.innerHTML = '<p class="log-line info-line">Starting connection test...</p>';
+        
+        document.getElementById('screenshot-container').innerHTML = `
+          <div class="spinner-border text-primary" role="status">
+            <span class="visually-hidden">Loading...</span>
+          </div>
+          <p class="text-muted mt-2">Running test, please wait...</p>
+        `;
+        
+        // Stream test results
+        const eventSource = new EventSource('/admin/api/browserless/test');
+        
+        eventSource.onmessage = function(event) {
+          const data = JSON.parse(event.data);
+          
+          if (data.type === 'log') {
+            let cssClass = 'log-line';
+            if (data.level === 'success') cssClass += ' success-line';
+            if (data.level === 'error') cssClass += ' error-line';
+            if (data.level === 'warning') cssClass += ' warning-line';
+            if (data.level === 'info') cssClass += ' info-line';
+            
+            const logLine = document.createElement('p');
+            logLine.className = cssClass;
+            logLine.textContent = data.message;
+            
+            logOutput.appendChild(logLine);
+            logOutput.scrollTop = logOutput.scrollHeight;
+          }
+          
+          if (data.type === 'screenshot' && data.path) {
+            document.getElementById('screenshot-container').innerHTML = `
+              <img src="/static/browserless-test.png?t=${Date.now()}" class="img-fluid border" alt="Browserless Test Screenshot">
+              <p class="text-muted mt-2">Screenshot from test run</p>
+            `;
+          }
+          
+          if (data.type === 'done') {
+            eventSource.close();
+            checkConnectionStatus();
+          }
+        };
+        
+        eventSource.onerror = function() {
+          logOutput.innerHTML += '<p class="log-line error-line">Error receiving test updates. Test failed.</p>';
+          eventSource.close();
+          checkConnectionStatus();
+        };
+      }
+    });
+  </script>
+</body>
+</html> 

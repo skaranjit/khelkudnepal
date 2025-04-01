@@ -2,6 +2,15 @@
 const express = require('express');
 const router = express.Router();
 const News = require('../models/News'); // Adjust path if necessary for your project structure
+const Settings = require('../models/Settings'); // Adjust path if necessary for your project structure
+const BrowserService = require('../utils/browserless');
+
+// Import the league controller
+const { 
+  getLeaguesPage, 
+  getLeagueDetailsPage, 
+  getTeamDetailsPage 
+} = require('../controllers/leagueController');
 
 // Add middleware to pass user data to all views
 router.use((req, res, next) => {
@@ -137,11 +146,7 @@ router.get('/news/:id', async (req, res) => {
       // If content is too short, try to fetch more content from the URL
       if (news.content.length < 300 && news.url && news.url.startsWith('http')) {
         try {
-          const puppeteer = require('puppeteer');
-          const browser = await puppeteer.launch({
-            args: ['--no-sandbox', '--disable-setuid-sandbox'],
-            headless: "new"
-          });
+          const browser = await BrowserService.getBrowser();
           const page = await browser.newPage();
           await page.goto(news.url, { waitUntil: 'domcontentloaded', timeout: 5000 });
           
@@ -200,6 +205,32 @@ router.get('/profile', (req, res) => {
     activeNav: 'profile'
   });
 });
+
+// Live Scores page
+router.get('/live-scores', async (req, res) => {
+  try {
+    // Get settings for site configuration
+    const settings = await Settings.findOne();
+    
+    res.render('live-scores', {
+      title: 'Live Scores',
+      user: req.session.user || null,
+      settings,
+      activeNav: 'live-scores'
+    });
+  } catch (error) {
+    console.error('Error loading Live Scores page:', error);
+    res.status(500).render('error', { 
+      message: 'There was an error loading the Live Scores page. Please try again later.',
+      error: process.env.NODE_ENV === 'development' ? error : {}
+    });
+  }
+});
+
+// Leagues routes
+router.get('/leagues', getLeaguesPage);
+router.get('/leagues/:id', getLeagueDetailsPage);
+router.get('/leagues/:leagueId/teams/:teamName', getTeamDetailsPage);
 
 // Export the router
 module.exports = router; 

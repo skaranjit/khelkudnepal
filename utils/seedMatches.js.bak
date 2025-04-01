@@ -1,0 +1,1245 @@
+const mongoose = require('mongoose');
+const Match = require('../models/Match');
+const dotenv = require('dotenv');
+const axios = require('axios');
+const cheerio = require('cheerio');
+const BrowserService = require('./browserless');
+
+// Load environment variables
+dotenv.config();
+
+// MongoDB connection options
+const clientOptions = { 
+  serverApi: { 
+    version: '1', 
+    strict: true, 
+    deprecationErrors: true 
+  }
+};
+
+// Define URIs
+// Database connection
+const username = encodeURIComponent(process.env.MONGO_USERNAME || "screamindeath");
+const password = encodeURIComponent(process.env.MONGO_PASSWORD || "Asdlkj12!@");
+const cluster = process.env.MONGO_CLUSTER || "khelkudnepal.avsi6dg.mongodb.net";
+const dbName = "khelkud_nepal";
+
+// Build MongoDB Atlas connection string
+const uri = `mongodb+srv://${username}:${password}@${cluster}/?retryWrites=true&w=majority&appName=khelkudNepal`;
+const localUri = process.env.MONGODB_URI || 'mongodb://localhost:27017/khelkud_nepal';
+
+// Connect to database - try Atlas first, then local
+async function connectToDatabase() {
+  try {
+    console.log('Attempting to connect to MongoDB Atlas...');
+    await mongoose.connect(uri, clientOptions);
+    console.log('Successfully connected to MongoDB Atlas');
+    return true;
+  } catch (atlasError) {
+    console.error('MongoDB Atlas connection error:', atlasError.message);
+    
+    try {
+      console.log('Attempting to connect to local MongoDB...');
+      await mongoose.connect(localUri);
+      console.log('Connected to local MongoDB successfully');
+      return true;
+    } catch (localError) {
+      console.error('Local MongoDB connection error:', localError.message);
+      return false;
+// Web scraping utility for matches data
+class MatchWebScraper {
+  // Core methods will go here
+}
+
+// Web scraping utility for matches data
+class MatchWebScraper {
+  // Fetch cricket matches from the web
+  static async fetchCricketMatches() {
+    try {
+      console.log('Fetching cricket matches from the web...');
+      const matches = [];
+      
+      // Try to use Browserless for better scraping results
+      let browser = null;
+      try {
+        browser = await BrowserService.getBrowser();
+        const page = await BrowserService.createStealthPage(browser);
+        
+        // Try to find live cricket matches
+        await page.goto('https://www.google.com/search?q=nepal+cricket+live+match+score', {
+          waitUntil: 'domcontentloaded',
+          timeout: 30000
+        });
+        
+        // Extract match info if available
+        const liveMatches = await page.evaluate(() => {
+          const matchData = [];
+          
+          // Check for Google's sports data
+          const matchElements = document.querySelectorAll('.imso-hov');
+          
+          if (matchElements.length > 0) {
+            matchElements.forEach(matchElement => {
+              const homeTeam = matchElement.querySelector('.imso_mh__l-tm-name')?.textContent.trim();
+              const awayTeam = matchElement.querySelector('.imso_mh__r-tm-name')?.textContent.trim();
+              
+              if (homeTeam && awayTeam) {
+                const homeScore = matchElement.querySelector('.imso_mh__l-tm-sc')?.textContent.trim() || '0';
+                const awayScore = matchElement.querySelector('.imso_mh__r-tm-sc')?.textContent.trim() || '0';
+                const matchStatus = matchElement.querySelector('.imso_mh__stts')?.textContent.trim() || 'live';
+                const tournament = matchElement.querySelector('.imso_mh__lg-nm')?.textContent.trim() || 'Cricket Match';
+                
+                matchData.push({
+                  homeTeam,
+                  awayTeam,
+                  homeScore: parseFloat(homeScore) || 0,
+                  awayScore: parseFloat(awayScore) || 0,
+                  status: matchStatus.toLowerCase().includes('live') ? 'live' : 
+                          matchStatus.toLowerCase().includes('final') ? 'completed' : 'scheduled',
+                  tournament
+                });
+              }
+            });
+          }
+          
+          return matchData;
+        });
+        
+        if (liveMatches && liveMatches.length > 0) {
+          console.log(`Found ${liveMatches.length} live cricket matches`);
+          
+          // Process live matches
+          for (const match of liveMatches) {
+            matches.push({
+              homeTeam: match.homeTeam,
+              awayTeam: match.awayTeam,
+              homeScore: match.homeScore,
+              awayScore: match.awayScore,
+              startTime: new Date(),
+              category: 'Cricket',
+              status: match.status,
+              venue: {
+                name: 'Cricket Stadium',
+                location: 'Nepal'
+              },
+              tournament: match.tournament,
+              innings: [
+                {
+                  team: match.homeTeam,
+                  runs: match.homeScore,
+                  wickets: Math.floor(Math.random() * 10),
+                  overs: (Math.floor(Math.random() * 50) + Math.random()).toFixed(1)
+                },
+                {
+                  team: match.awayTeam,
+                  runs: match.awayScore,
+                  wickets: Math.floor(Math.random() * 10),
+                  overs: (Math.floor(Math.random() * 50) + Math.random()).toFixed(1)
+                }
+              ],
+              updates: [
+                {
+                  time: new Date(),
+                  text: `${match.homeTeam} vs ${match.awayTeam} match in progress`,
+                  important: true
+                }
+              ]
+            });
+          }
+        }
+        
+        // If no live matches found, try finding upcoming matches
+        if (matches.length === 0) {
+          await page.goto('https://www.google.com/search?q=nepal+cricket+upcoming+matches', {
+            waitUntil: 'domcontentloaded',
+            timeout: 30000
+          });
+          
+          const upcomingMatches = await page.evaluate(() => {
+            const matchData = [];
+            
+            // Check for upcoming matches listed in Google
+            const fixtures = document.querySelectorAll('.imspo_mt__mit');
+            
+            if (fixtures.length > 0) {
+              fixtures.forEach(fixture => {
+                const teams = fixture.querySelectorAll('.imspo_mt__pm-inf');
+                if (teams.length >= 2) {
+                  const homeTeam = teams[0]?.textContent.trim();
+                  const awayTeam = teams[1]?.textContent.trim();
+                  
+                  if (homeTeam && awayTeam) {
+                    const matchDate = fixture.querySelector('.imspo_mt__date')?.textContent.trim();
+                    const tournament = fixture.closest('.imso-hov')?.querySelector('.imso_mh__lg-nm')?.textContent.trim() || 'Cricket Match';
+                    
+                    // Create a date object for the upcoming match
+                    let startTime = new Date();
+                    startTime.setDate(startTime.getDate() + Math.floor(Math.random() * 7) + 1); // Random date in next week
+                    
+                    matchData.push({
+                      homeTeam,
+                      awayTeam,
+                      matchDate,
+                      tournament,
+                      startTime
+                    });
+                  }
+                }
+              });
+            }
+            
+            return matchData;
+          });
+          
+          if (upcomingMatches && upcomingMatches.length > 0) {
+            console.log(`Found ${upcomingMatches.length} upcoming cricket matches`);
+            
+            // Process upcoming matches
+            for (const match of upcomingMatches) {
+              matches.push({
+                homeTeam: match.homeTeam,
+                awayTeam: match.awayTeam,
+                homeScore: 0,
+                awayScore: 0,
+                startTime: match.startTime || new Date(Date.now() + 86400000), // Tomorrow if no date
+                category: 'Cricket',
+                status: 'scheduled',
+                venue: {
+                  name: 'Cricket Stadium',
+                  location: 'Nepal'
+                },
+                tournament: match.tournament
+              });
+            }
+          }
+        }
+        
+        // Try finding completed matches
+        await page.goto('https://www.google.com/search?q=nepal+cricket+recent+results', {
+          waitUntil: 'domcontentloaded',
+          timeout: 30000
+        });
+        
+        const completedMatches = await page.evaluate(() => {
+          const matchData = [];
+          
+          // Check for completed matches
+          const results = document.querySelectorAll('.imso-hov');
+          
+          if (results.length > 0) {
+            results.forEach(result => {
+              const homeTeam = result.querySelector('.imso_mh__l-tm-name')?.textContent.trim();
+              const awayTeam = result.querySelector('.imso_mh__r-tm-name')?.textContent.trim();
+              
+              if (homeTeam && awayTeam) {
+                const homeScore = result.querySelector('.imso_mh__l-tm-sc')?.textContent.trim() || '0';
+                const awayScore = result.querySelector('.imso_mh__r-tm-sc')?.textContent.trim() || '0';
+                const matchStatus = result.querySelector('.imso_mh__stts')?.textContent.trim() || 'Final';
+                const tournament = result.querySelector('.imso_mh__lg-nm')?.textContent.trim() || 'Cricket Match';
+                
+                if (matchStatus.toLowerCase().includes('final')) {
+                  matchData.push({
+                    homeTeam,
+                    awayTeam,
+                    homeScore: parseFloat(homeScore) || 0,
+                    awayScore: parseFloat(awayScore) || 0,
+                    tournament
+                  });
+                }
+              }
+            });
+          }
+          
+          return matchData;
+        });
+        
+        if (completedMatches && completedMatches.length > 0) {
+          console.log(`Found ${completedMatches.length} completed cricket matches`);
+          
+          // Process completed matches
+          for (const match of completedMatches) {
+            // Calculate a random end time in the past
+            const startTime = new Date(Date.now() - (Math.floor(Math.random() * 10) + 1) * 86400000); // 1-10 days ago
+            const endTime = new Date(startTime.getTime() + 28800000); // 8 hours later
+            
+            matches.push({
+              homeTeam: match.homeTeam,
+              awayTeam: match.awayTeam,
+              homeScore: match.homeScore,
+              awayScore: match.awayScore,
+              startTime,
+              endTime,
+              category: 'Cricket',
+              status: 'completed',
+              venue: {
+                name: 'Cricket Stadium',
+                location: 'Nepal'
+              },
+              tournament: match.tournament,
+              innings: [
+                {
+                  team: match.homeTeam,
+                  runs: match.homeScore,
+                  wickets: Math.floor(Math.random() * 10),
+                  overs: 50
+                },
+                {
+                  team: match.awayTeam,
+                  runs: match.awayScore,
+                  wickets: 10,
+                  overs: (Math.floor(Math.random() * 50) + Math.random()).toFixed(1)
+                }
+              ]
+            });
+          }
+        }
+      } catch (error) {
+        console.error('Error with Browserless in cricket matches scraping:', error);
+      } finally {
+        if (browser) {
+          await browser.close().catch(console.error);
+        }
+      }
+      
+      return matches;
+    } catch (error) {
+      console.error('Error fetching cricket matches:', error);
+      return [];
+    }
+  }
+  
+  // Fetch football matches from the web
+  static async fetchFootballMatches() {
+    try {
+      console.log('Fetching football matches from the web...');
+      const matches = [];
+      
+      // Try to fetch from reliable football data sources
+      try {
+        const response = await axios.get('https://www.google.com/search?q=nepal+football+national+team+matches', {
+          headers: {
+            'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/91.0.4472.124 Safari/537.36'
+          }
+        });
+        
+        const $ = cheerio.load(response.data);
+        
+        // Try to extract match data from Google's sports data
+        const matchElements = $('.imso-hov');
+        
+        matchElements.each((i, el) => {
+          const homeTeam = $(el).find('.imso_mh__l-tm-name').text().trim();
+          const awayTeam = $(el).find('.imso_mh__r-tm-name').text().trim();
+          
+          if (homeTeam && awayTeam) {
+            const homeScore = parseInt($(el).find('.imso_mh__l-tm-sc').text().trim()) || 0;
+            const awayScore = parseInt($(el).find('.imso_mh__r-tm-sc').text().trim()) || 0;
+            const matchStatus = $(el).find('.imso_mh__stts').text().trim() || '';
+            const tournament = $(el).find('.imso_mh__lg-nm').text().trim() || 'Football Match';
+            
+            const isLive = matchStatus.toLowerCase().includes('live');
+            const isCompleted = matchStatus.toLowerCase().includes('final') || matchStatus.toLowerCase().includes('ft');
+            const isScheduled = !isLive && !isCompleted;
+            
+            // Determine match details based on status
+            if (isLive) {
+              // For live match
+              matches.push({
+                homeTeam,
+                awayTeam,
+                homeScore,
+                awayScore,
+                startTime: new Date(Date.now() - 3600000), // Started 1 hour ago
+                category: 'Football',
+                status: 'live',
+                venue: {
+                  name: 'Dasharath Rangasala Stadium',
+                  location: 'Kathmandu, Nepal'
+                },
+                tournament,
+                goals: this.generateRandomGoals(homeTeam, awayTeam, homeScore, awayScore),
+                updates: [
+                  {
+                    time: new Date(Date.now() - 3600000),
+                    text: "Match kick-off",
+                    important: true
+                  },
+                  {
+                    time: new Date(),
+                    text: `Match in progress, score: ${homeTeam} ${homeScore}-${awayScore} ${awayTeam}`,
+                    important: false
+                  }
+                ]
+              });
+            } else if (isCompleted) {
+              // For completed match
+              const startTime = new Date(Date.now() - (Math.floor(Math.random() * 10) + 1) * 86400000); // 1-10 days ago
+              const endTime = new Date(startTime.getTime() + 7200000); // 2 hours later
+              
+              matches.push({
+                homeTeam,
+                awayTeam,
+                homeScore,
+                awayScore,
+                startTime,
+                endTime,
+                category: 'Football',
+                status: 'completed',
+                venue: {
+                  name: 'Dasharath Rangasala Stadium',
+                  location: 'Kathmandu, Nepal'
+                },
+                tournament,
+                goals: this.generateRandomGoals(homeTeam, awayTeam, homeScore, awayScore)
+              });
+            } else {
+              // For scheduled match
+              const startTime = new Date(Date.now() + (Math.floor(Math.random() * 14) + 1) * 86400000); // 1-14 days in future
+              
+              matches.push({
+                homeTeam,
+                awayTeam,
+                homeScore: 0,
+                awayScore: 0,
+                startTime,
+                category: 'Football',
+                status: 'scheduled',
+                venue: {
+                  name: 'Dasharath Rangasala Stadium',
+                  location: 'Kathmandu, Nepal'
+                },
+                tournament
+              });
+            }
+          }
+        });
+      } catch (error) {
+        console.error('Error fetching from Google:', error.message);
+      }
+      
+      // If no matches found, try Browserless
+      if (matches.length === 0) {
+        let browser = null;
+        try {
+          browser = await BrowserService.getBrowser();
+          const page = await BrowserService.createStealthPage(browser);
+          
+          // Search for Nepal football matches
+          await page.goto('https://www.google.com/search?q=nepal+football+league+matches', {
+            waitUntil: 'domcontentloaded',
+            timeout: 30000
+          });
+          
+          // Extract matches
+          const footballMatches = await page.evaluate(() => {
+            const matchData = [];
+            
+            // Get all match elements from Google
+            const matchElements = document.querySelectorAll('.imspo_mt__mit');
+            
+            matchElements.forEach(match => {
+              const teamElements = match.querySelectorAll('.imspo_mt__pm-inf');
+              if (teamElements.length >= 2) {
+                const homeTeam = teamElements[0]?.textContent.trim();
+                const awayTeam = teamElements[1]?.textContent.trim();
+                
+                if (homeTeam && awayTeam) {
+                  // Try to get scores if available
+                  const scoreElements = match.querySelectorAll('.imspo_mt__tt-w');
+                  const homeScore = scoreElements[0] ? parseInt(scoreElements[0].textContent.trim()) || 0 : 0;
+                  const awayScore = scoreElements[1] ? parseInt(scoreElements[1].textContent.trim()) || 0 : 0;
+                  
+                  // Try to get match status
+                  const statusElement = match.querySelector('.imspo_mt__ndl');
+                  const statusText = statusElement ? statusElement.textContent.trim() : '';
+                  
+                  // Try to get match date/time
+                  const dateElement = match.querySelector('.imspo_mt__date');
+                  const timeElement = match.querySelector('.imspo_mt__time');
+                  const dateText = dateElement ? dateElement.textContent.trim() : '';
+                  const timeText = timeElement ? timeElement.textContent.trim() : '';
+                  
+                  // Try to get league/tournament
+                  const tournamentElement = match.closest('.imso-hov')?.querySelector('.imso_mh__lg-nm');
+                  const tournament = tournamentElement ? tournamentElement.textContent.trim() : 'Nepal Football League';
+                  
+                  matchData.push({
+                    homeTeam,
+                    awayTeam,
+                    homeScore,
+                    awayScore,
+                    status: statusText,
+                    date: dateText,
+                    time: timeText,
+                    tournament
+                  });
+                }
+              }
+            });
+            
+            return matchData;
+          });
+          
+          if (footballMatches && footballMatches.length > 0) {
+            console.log(`Found ${footballMatches.length} football matches from Browserless`);
+            
+            // Process matches based on their status
+            for (const match of footballMatches) {
+              // Determine if match is live, scheduled, or completed
+              const isLive = match.status.toLowerCase().includes('live');
+              const isCompleted = match.status.toLowerCase().includes('ft') || 
+                                match.status.toLowerCase().includes('final');
+              
+              if (isLive) {
+                // Live match
+                matches.push({
+                  homeTeam: match.homeTeam,
+                  awayTeam: match.awayTeam,
+                  homeScore: match.homeScore,
+                  awayScore: match.awayScore,
+                  startTime: new Date(Date.now() - 3600000), // Started 1 hour ago
+                  category: 'Football',
+                  status: 'live',
+                  venue: {
+                    name: 'Football Stadium',
+                    location: 'Nepal'
+                  },
+                  tournament: match.tournament,
+                  goals: this.generateRandomGoals(match.homeTeam, match.awayTeam, match.homeScore, match.awayScore),
+                  updates: [
+                    {
+                      time: new Date(),
+                      text: `Match in progress: ${match.homeTeam} vs ${match.awayTeam}`,
+                      important: true
+                    }
+                  ]
+                });
+              } else if (isCompleted) {
+                // Completed match
+                const startTime = new Date(Date.now() - (Math.floor(Math.random() * 10) + 1) * 86400000); // 1-10 days ago
+                const endTime = new Date(startTime.getTime() + 7200000); // 2 hours later
+                
+                matches.push({
+                  homeTeam: match.homeTeam,
+                  awayTeam: match.awayTeam,
+                  homeScore: match.homeScore,
+                  awayScore: match.awayScore,
+                  startTime,
+                  endTime,
+                  category: 'Football',
+                  status: 'completed',
+                  venue: {
+                    name: 'Football Stadium',
+                    location: 'Nepal'
+                  },
+                  tournament: match.tournament,
+                  goals: this.generateRandomGoals(match.homeTeam, match.awayTeam, match.homeScore, match.awayScore)
+                });
+              } else {
+                // Scheduled match
+                // Try to parse the date/time if available, otherwise use a random future date
+                let startTime = new Date();
+                startTime.setDate(startTime.getDate() + Math.floor(Math.random() * 14) + 1);
+                
+                matches.push({
+                  homeTeam: match.homeTeam,
+                  awayTeam: match.awayTeam,
+                  homeScore: 0,
+                  awayScore: 0,
+                  startTime,
+                  category: 'Football',
+                  status: 'scheduled',
+                  venue: {
+                    name: 'Football Stadium',
+                    location: 'Nepal'
+                  },
+                  tournament: match.tournament
+                });
+              }
+            }
+          }
+        } catch (error) {
+          console.error('Error with Browserless in football matches scraping:', error);
+        } finally {
+          if (browser) {
+            await browser.close().catch(console.error);
+          }
+        }
+      }
+      
+      return matches;
+    } catch (error) {
+      console.error('Error fetching football matches:', error);
+      return [];
+    }
+  }
+  
+  // Helper method to generate random goals for football matches
+  static generateRandomGoals(homeTeam, awayTeam, homeScore, awayScore) {
+    const goals = [];
+    
+    // Generate home team goals
+    for (let i = 0; i < homeScore; i++) {
+      goals.push({
+        team: 'home',
+        player: `Player ${Math.floor(Math.random() * 11) + 1}`,
+        minute: Math.floor(Math.random() * 90) + 1
+      });
+    }
+    
+    // Generate away team goals
+    for (let i = 0; i < awayScore; i++) {
+      goals.push({
+        team: 'away',
+        player: `Player ${Math.floor(Math.random() * 11) + 1}`,
+        minute: Math.floor(Math.random() * 90) + 1
+      });
+    }
+    
+    // Sort goals by minute
+    goals.sort((a, b) => a.minute - b.minute);
+    
+    return goals;
+  }
+  
+  // Fetch basketball matches from web
+  static async fetchBasketballMatches() {
+    try {
+      console.log('Fetching basketball matches from web...');
+      const matches = [];
+      
+      // Try to use Browserless for better scraping results
+      let browser = null;
+      try {
+        browser = await BrowserService.getBrowser();
+        const page = await BrowserService.createStealthPage(browser);
+        
+        // Try to find basketball matches
+        await page.goto('https://www.google.com/search?q=nepal+basketball+matches', {
+          waitUntil: 'domcontentloaded',
+          timeout: 30000
+        });
+        
+        // Extract match info if available
+        const basketballMatches = await page.evaluate(() => {
+          const matchData = [];
+          
+          // Check for any basketball match data
+          // This is likely to return limited results for Nepali basketball
+          const matchElements = document.querySelectorAll('.imso-hov');
+          
+          matchElements.forEach(match => {
+            if (match.textContent.toLowerCase().includes('basketball')) {
+              const teams = match.querySelectorAll('.imso_mh__tm-name');
+              if (teams.length >= 2) {
+                const homeTeam = teams[0]?.textContent.trim();
+                const awayTeam = teams[1]?.textContent.trim();
+                
+                if (homeTeam && awayTeam) {
+                  const scores = match.querySelectorAll('.imso_mh__tm-sc');
+                  const homeScore = scores[0] ? parseInt(scores[0].textContent.trim()) || 0 : 0;
+                  const awayScore = scores[1] ? parseInt(scores[1].textContent.trim()) || 0 : 0;
+                  
+                  const statusElement = match.querySelector('.imso_mh__stts');
+                  const status = statusElement ? statusElement.textContent.trim() : '';
+                  
+                  const tournamentElement = match.querySelector('.imso_mh__lg-nm');
+                  const tournament = tournamentElement ? tournamentElement.textContent.trim() : 'Basketball Tournament';
+                  
+                  matchData.push({
+                    homeTeam,
+                    awayTeam,
+                    homeScore,
+                    awayScore,
+                    status,
+                    tournament
+                  });
+                }
+              }
+            }
+          });
+          
+          return matchData;
+        });
+        
+        if (basketballMatches && basketballMatches.length > 0) {
+          console.log(`Found ${basketballMatches.length} basketball matches`);
+          
+          // Process matches based on status
+          basketballMatches.forEach(match => {
+            const isLive = match.status.toLowerCase().includes('live');
+            const isCompleted = match.status.toLowerCase().includes('final') || 
+                               match.status.toLowerCase().includes('ft');
+            
+            if (isLive) {
+              // Live basketball match
+              matches.push({
+                homeTeam: match.homeTeam,
+                awayTeam: match.awayTeam,
+                homeScore: match.homeScore,
+                awayScore: match.awayScore,
+                startTime: new Date(Date.now() - 3600000), // Started 1 hour ago
+                category: 'Basketball',
+                status: 'live',
+                venue: {
+                  name: 'Basketball Arena',
+                  location: 'Nepal'
+                },
+                tournament: match.tournament,
+                quarters: this.generateBasketballQuarters(match.homeScore, match.awayScore),
+                updates: [
+                  {
+                    time: new Date(),
+                    text: `Live: ${match.homeTeam} ${match.homeScore} - ${match.awayScore} ${match.awayTeam}`,
+                    important: true
+                  }
+                ]
+              });
+            } else if (isCompleted) {
+              // Completed basketball match
+              const startTime = new Date(Date.now() - (Math.floor(Math.random() * 10) + 1) * 86400000); // 1-10 days ago
+              const endTime = new Date(startTime.getTime() + 7200000); // 2 hours later
+              
+              matches.push({
+                homeTeam: match.homeTeam,
+                awayTeam: match.awayTeam,
+                homeScore: match.homeScore,
+                awayScore: match.awayScore,
+                startTime,
+                endTime,
+                category: 'Basketball',
+                status: 'completed',
+                venue: {
+                  name: 'Basketball Arena',
+                  location: 'Nepal'
+                },
+                tournament: match.tournament,
+                quarters: this.generateBasketballQuarters(match.homeScore, match.awayScore)
+              });
+            } else {
+              // Scheduled basketball match
+              const startTime = new Date(Date.now() + (Math.floor(Math.random() * 14) + 1) * 86400000); // 1-14 days in future
+              
+              matches.push({
+                homeTeam: match.homeTeam,
+                awayTeam: match.awayTeam,
+                homeScore: 0,
+                awayScore: 0,
+                startTime,
+                category: 'Basketball',
+                status: 'scheduled',
+                venue: {
+                  name: 'Basketball Arena',
+                  location: 'Nepal'
+                },
+                tournament: match.tournament
+              });
+            }
+          });
+        }
+        
+        // If no matches found, search for basketball teams and create matches
+        if (matches.length === 0) {
+          await page.goto('https://www.google.com/search?q=nepal+basketball+league+teams', {
+            waitUntil: 'domcontentloaded',
+            timeout: 30000
+          });
+          
+          const basketballTeams = await page.evaluate(() => {
+            const teams = [];
+            const elements = document.querySelectorAll('div.g');
+            
+            elements.forEach(element => {
+              const text = element.textContent;
+              if (text.toLowerCase().includes('basketball') && text.toLowerCase().includes('nepal')) {
+                // Try to extract team names from search results
+                const lines = text.split('\n');
+                
+                lines.forEach(line => {
+                  if (line.includes('Club') || line.includes('Team') || 
+                     (line.includes('Basketball') && !line.includes('http'))) {
+                    // Clean up team names
+                    const teamName = line.replace(/[^\w\s]/gi, '').trim();
+                    if (teamName && teamName.length > 3 && teamName.length < 40) {
+                      teams.push(teamName);
+                    }
+                  }
+                });
+              }
+            });
+            
+            return [...new Set(teams)]; // Remove duplicates
+          });
+          
+          if (basketballTeams && basketballTeams.length >= 2) {
+            console.log(`Found ${basketballTeams.length} basketball teams`);
+            
+            // Create some matches using these teams
+            for (let i = 0; i < basketballTeams.length - 1; i += 2) {
+              // Create a live match
+              if (i === 0) {
+                matches.push({
+                  homeTeam: basketballTeams[i],
+                  awayTeam: basketballTeams[i + 1],
+                  homeScore: Math.floor(Math.random() * 60) + 40,
+                  awayScore: Math.floor(Math.random() * 60) + 40,
+                  startTime: new Date(Date.now() - 3600000), // Started 1 hour ago
+                  category: 'Basketball',
+                  status: 'live',
+                  venue: {
+                    name: 'National Sports Complex',
+                    location: 'Kathmandu, Nepal'
+                  },
+                  tournament: 'Nepal Basketball League',
+                  quarters: [
+                    {
+                      quarter: 1,
+                      homeScore: Math.floor(Math.random() * 25) + 10,
+                      awayScore: Math.floor(Math.random() * 25) + 10
+                    },
+                    {
+                      quarter: 2,
+                      homeScore: Math.floor(Math.random() * 25) + 10,
+                      awayScore: Math.floor(Math.random() * 25) + 10
+                    },
+                    {
+                      quarter: 3,
+                      homeScore: Math.floor(Math.random() * 25) + 10,
+                      awayScore: Math.floor(Math.random() * 25) + 10
+                    }
+                  ],
+                  updates: [
+                    {
+                      time: new Date(),
+                      text: `Live match: ${basketballTeams[i]} vs ${basketballTeams[i + 1]}`,
+                      important: true
+                    }
+                  ]
+                });
+              } 
+              // Create a completed match
+              else if (i === 2 && i + 1 < basketballTeams.length) {
+                const startTime = new Date(Date.now() - (Math.floor(Math.random() * 10) + 1) * 86400000); // 1-10 days ago
+                const endTime = new Date(startTime.getTime() + 7200000); // 2 hours later
+                
+                const homeScore = Math.floor(Math.random() * 60) + 40;
+                const awayScore = Math.floor(Math.random() * 60) + 40;
+                
+                matches.push({
+                  homeTeam: basketballTeams[i],
+                  awayTeam: basketballTeams[i + 1],
+                  homeScore,
+                  awayScore,
+                  startTime,
+                  endTime,
+                  category: 'Basketball',
+                  status: 'completed',
+                  venue: {
+                    name: 'National Sports Complex',
+                    location: 'Kathmandu, Nepal'
+                  },
+                  tournament: 'Nepal Basketball League',
+                  quarters: this.generateBasketballQuarters(homeScore, awayScore)
+                });
+              } 
+              // Create an upcoming match
+              else if (i + 1 < basketballTeams.length) {
+                const startTime = new Date(Date.now() + (Math.floor(Math.random() * 14) + 1) * 86400000); // 1-14 days in future
+                
+                matches.push({
+                  homeTeam: basketballTeams[i],
+                  awayTeam: basketballTeams[i + 1],
+                  homeScore: 0,
+                  awayScore: 0,
+                  startTime,
+                  category: 'Basketball',
+                  status: 'scheduled',
+                  venue: {
+                    name: 'National Sports Complex',
+                    location: 'Kathmandu, Nepal'
+                  },
+                  tournament: 'Nepal Basketball League'
+                });
+              }
+            }
+          }
+        }
+      } catch (error) {
+        console.error('Error with Browserless in basketball matches scraping:', error);
+      } finally {
+        if (browser) {
+          await browser.close().catch(console.error);
+        }
+      }
+      
+      return matches;
+    } catch (error) {
+      console.error('Error fetching basketball matches:', error);
+      return [];
+    }
+  }
+  
+  // Helper method to generate basketball quarters
+  static generateBasketballQuarters(homeScore, awayScore) {
+    const quarters = [];
+    const numQuarters = 4;
+    
+    // Calculate average points per quarter
+    const homeAvgPoints = Math.floor(homeScore / numQuarters);
+    const awayAvgPoints = Math.floor(awayScore / numQuarters);
+    
+    // Generate random quarter scores that sum to total
+    let remainingHomePoints = homeScore;
+    let remainingAwayPoints = awayScore;
+    
+    for (let i = 1; i <= numQuarters; i++) {
+      if (i === numQuarters) {
+        // Last quarter gets remaining points
+        quarters.push({
+          quarter: i,
+          homeScore: remainingHomePoints,
+          awayScore: remainingAwayPoints
+        });
+      } else {
+        // Random distribution around the average
+        const homeQuarterPoints = Math.max(5, Math.floor(homeAvgPoints + (Math.random() * 10 - 5)));
+        const awayQuarterPoints = Math.max(5, Math.floor(awayAvgPoints + (Math.random() * 10 - 5)));
+        
+        // Adjust if we'd go below 0 for remaining points
+        const adjustedHomePoints = Math.min(homeQuarterPoints, remainingHomePoints - (numQuarters - i) * 5);
+        const adjustedAwayPoints = Math.min(awayQuarterPoints, remainingAwayPoints - (numQuarters - i) * 5);
+        
+        quarters.push({
+          quarter: i,
+          homeScore: adjustedHomePoints,
+          awayScore: adjustedAwayPoints
+        });
+        
+        remainingHomePoints -= adjustedHomePoints;
+        remainingAwayPoints -= adjustedAwayPoints;
+      }
+    }
+    
+    return quarters;
+  }
+  
+  // Fetch volleyball matches from web
+  static async fetchVolleyballMatches() {
+    try {
+      console.log('Fetching volleyball matches from web...');
+      const matches = [];
+      
+      // Try to fetch data using HTTP request and Cheerio
+      try {
+        const response = await axios.get('https://www.google.com/search?q=nepal+volleyball+league+matches', {
+          headers: {
+            'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/91.0.4472.124 Safari/537.36'
+          }
+        });
+        
+        const $ = cheerio.load(response.data);
+        const matchElements = $('.imso-hov');
+        
+        matchElements.each((i, el) => {
+          if ($(el).text().toLowerCase().includes('volleyball')) {
+            const homeTeam = $(el).find('.imso_mh__l-tm-name').text().trim();
+            const awayTeam = $(el).find('.imso_mh__r-tm-name').text().trim();
+            
+            if (homeTeam && awayTeam) {
+              const homeScore = parseInt($(el).find('.imso_mh__l-tm-sc').text().trim()) || 0;
+              const awayScore = parseInt($(el).find('.imso_mh__r-tm-sc').text().trim()) || 0;
+              const matchStatus = $(el).find('.imso_mh__stts').text().trim() || '';
+              const tournament = $(el).find('.imso_mh__lg-nm').text().trim() || 'Volleyball Tournament';
+              
+              // Determine match status
+              const isLive = matchStatus.toLowerCase().includes('live');
+              const isCompleted = matchStatus.toLowerCase().includes('final') || matchStatus.toLowerCase().includes('ft');
+              
+              if (isLive) {
+                // Live volleyball match
+                matches.push({
+                  homeTeam,
+                  awayTeam,
+                  homeScore,
+                  awayScore,
+                  startTime: new Date(Date.now() - 3600000), // 1 hour ago
+                  category: 'Volleyball',
+                  status: 'live',
+                  venue: {
+                    name: 'Volleyball Stadium',
+                    location: 'Nepal'
+                  },
+                  tournament,
+                  updates: [
+                    {
+                      time: new Date(),
+                      text: `Live: ${homeTeam} ${homeScore} - ${awayScore} ${awayTeam}`,
+                      important: true
+                    }
+                  ]
+                });
+              } else if (isCompleted) {
+                // Completed volleyball match
+                const startTime = new Date(Date.now() - (Math.floor(Math.random() * 10) + 1) * 86400000); // 1-10 days ago
+                const endTime = new Date(startTime.getTime() + 7200000); // 2 hours later
+                
+                matches.push({
+                  homeTeam,
+                  awayTeam,
+                  homeScore,
+                  awayScore,
+                  startTime,
+                  endTime,
+                  category: 'Volleyball',
+                  status: 'completed',
+                  venue: {
+                    name: 'Volleyball Stadium',
+                    location: 'Nepal'
+                  },
+                  tournament
+                });
+              } else {
+                // Scheduled volleyball match
+                const startTime = new Date(Date.now() + (Math.floor(Math.random() * 14) + 1) * 86400000); // 1-14 days in future
+                
+                matches.push({
+                  homeTeam,
+                  awayTeam,
+                  homeScore: 0,
+                  awayScore: 0,
+                  startTime,
+                  category: 'Volleyball',
+                  status: 'scheduled',
+                  venue: {
+                    name: 'Volleyball Stadium',
+                    location: 'Nepal'
+                  },
+                  tournament
+                });
+              }
+            }
+          }
+        });
+      } catch (error) {
+        console.error('Error fetching volleyball data with Axios:', error.message);
+      }
+      
+      // If no matches found, try with Browserless and look for teams
+      if (matches.length === 0) {
+        let browser = null;
+        try {
+          browser = await BrowserService.getBrowser();
+          const page = await BrowserService.createStealthPage(browser);
+          
+          // Try to find volleyball clubs/teams in Nepal
+          await page.goto('https://www.google.com/search?q=nepal+volleyball+teams+clubs', {
+            waitUntil: 'domcontentloaded',
+            timeout: 30000
+          });
+          
+          const teamData = await page.evaluate(() => {
+            const teams = [];
+            const elements = document.querySelectorAll('div.g');
+            
+            elements.forEach(element => {
+              const text = element.textContent;
+              
+              if (text.toLowerCase().includes('volleyball') && 
+                 (text.toLowerCase().includes('club') || text.toLowerCase().includes('team'))) {
+                
+                // Extract potential team names
+                const lines = text.split('\n');
+                
+                lines.forEach(line => {
+                  if ((line.includes('Club') || line.includes('Team') || 
+                      line.includes('Volleyball') || line.includes('Association')) && 
+                     !line.includes('http') && !line.includes('www')) {
+                    
+                    // Clean up potential team name
+                    const teamName = line.replace(/[^\w\s]/gi, '').trim();
+                    
+                    if (teamName && teamName.length > 3 && teamName.length < 40) {
+                      teams.push(teamName);
+                    }
+                  }
+                });
+              }
+            });
+            
+            return [...new Set(teams)]; // Remove duplicates
+          });
+          
+          if (teamData && teamData.length >= 2) {
+            console.log(`Found ${teamData.length} volleyball teams`);
+            
+            // Create some matches using these teams
+            for (let i = 0; i < teamData.length - 1; i += 2) {
+              // Create a live match
+              if (i === 0) {
+                const homeScore = Math.floor(Math.random() * 3);
+                const awayScore = Math.floor(Math.random() * 3);
+                
+                matches.push({
+                  homeTeam: teamData[i],
+                  awayTeam: teamData[i + 1],
+                  homeScore,
+                  awayScore,
+                  startTime: new Date(Date.now() - 3600000), // Started 1 hour ago
+                  category: 'Volleyball',
+                  status: 'live',
+                  venue: {
+                    name: 'Army Sports Complex',
+                    location: 'Lalitpur, Nepal'
+                  },
+                  tournament: 'National Volleyball Championship',
+                  updates: [
+                    {
+                      time: new Date(),
+                      text: `Live match: ${teamData[i]} vs ${teamData[i + 1]}`,
+                      important: true
+                    }
+                  ]
+                });
+              } 
+              // Create a completed match
+              else if (i === 2 && i + 1 < teamData.length) {
+                const startTime = new Date(Date.now() - (Math.floor(Math.random() * 10) + 1) * 86400000); // 1-10 days ago
+                const endTime = new Date(startTime.getTime() + 7200000); // 2 hours later
+                
+                // Randomly decide winner (3-0, 3-1, 3-2)
+                const randomScore = Math.floor(Math.random() * 3);
+                let homeScore, awayScore;
+                
+                if (randomScore === 0) {
+                  homeScore = 3;
+                  awayScore = 0;
+                } else if (randomScore === 1) {
+                  homeScore = 3;
+                  awayScore = 1;
+                } else {
+                  homeScore = 3;
+                  awayScore = 2;
+                }
+                
+                matches.push({
+                  homeTeam: teamData[i],
+                  awayTeam: teamData[i + 1],
+                  homeScore,
+                  awayScore,
+                  startTime,
+                  endTime,
+                  category: 'Volleyball',
+                  status: 'completed',
+                  venue: {
+                    name: 'Army Sports Complex',
+                    location: 'Lalitpur, Nepal'
+                  },
+                  tournament: 'National Volleyball Championship'
+                });
+              } 
+              // Create an upcoming match
+              else if (i + 1 < teamData.length) {
+                const startTime = new Date(Date.now() + (Math.floor(Math.random() * 14) + 1) * 86400000); // 1-14 days in future
+                
+                matches.push({
+                  homeTeam: teamData[i],
+                  awayTeam: teamData[i + 1],
+                  homeScore: 0,
+                  awayScore: 0,
+                  startTime,
+                  category: 'Volleyball',
+                  status: 'scheduled',
+                  venue: {
+                    name: 'Army Sports Complex',
+                    location: 'Lalitpur, Nepal'
+                  },
+                  tournament: 'National Volleyball Championship'
+                });
+              }
+            }
+          }
+        } catch (error) {
+          console.error('Error with Browserless in volleyball matches scraping:', error);
+        } finally {
+          if (browser) {
+            await browser.close().catch(console.error);
+          }
+        }
+      }
+      
+      return matches;
+    } catch (error) {
+      console.error('Error fetching volleyball matches:', error);
+      return [];
+    }
+  }
+}
+
+// Seed data
+const seedMatches = async () => {
+  try {
+    // Connect to database
+    const connected = await connectToDatabase();
+    if (!connected) {
+      console.error('Failed to connect to database. Cannot seed matches data.');
+      process.exit(1);
+    }
+    
+    console.log('Starting to seed matches data...');
+    
+    // Clear existing matches
+    console.log('Deleting existing matches...');
+    await Match.deleteMany({});
+    console.log('Existing matches cleared');
+    
+    // Fetch matches data from web for each category
+    console.log('Fetching matches data from web sources...');
+    
+    // Cricket matches
+    const cricketMatches = await MatchWebScraper.fetchCricketMatches();
+    console.log(`Found ${cricketMatches.length} cricket matches`);
+    
+    // Football matches
+    const footballMatches = await MatchWebScraper.fetchFootballMatches();
+    console.log(`Found ${footballMatches.length} football matches`);
+    
+    // Basketball matches
+    const basketballMatches = await MatchWebScraper.fetchBasketballMatches();
+    console.log(`Found ${basketballMatches.length} basketball matches`);
+    
+    // Volleyball matches
+    const volleyballMatches = await MatchWebScraper.fetchVolleyballMatches();
+    console.log(`Found ${volleyballMatches.length} volleyball matches`);
+    
+    // Combine all matches
+    const allMatches = [
+      ...cricketMatches,
+      ...footballMatches,
+      ...basketballMatches,
+      ...volleyballMatches
+    ];
+    
+    if (allMatches.length === 0) {
+      console.log('No matches found from web sources. Database will be empty.');
+      mongoose.connection.close();
+      process.exit(0);
+    }
+    
+    // Insert matches into the database
+    console.log(`Inserting ${allMatches.length} matches into the database...`);
+    const insertedMatches = await Match.insertMany(allMatches);
+    console.log(`${insertedMatches.length} matches inserted successfully!`);
+    
+    // Close connection
+    mongoose.connection.close();
+    console.log('Matches data seeding completed');
+    process.exit(0);
+  } catch (error) {
+    console.error('Error seeding matches data:', error);
+    mongoose.connection.close();
+    process.exit(1);
+  }
+};
+
+// Run the seeding function
+seedMatches(); 

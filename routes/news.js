@@ -137,104 +137,155 @@ router.get('/local', async (req, res) => {
     }
 });
 
-// Category specific news
+// Category news
 router.get('/category/:category', async (req, res) => {
+    console.log(`[API] Fetching news for category: ${req.params.category}`);
     try {
-        const category = req.params.category;
-        console.log('Received category request for:', category);
+        const { category } = req.params;
+        const limit = parseInt(req.query.limit) || 10;
+        const page = parseInt(req.query.page) || 1;
+        const skip = (page - 1) * limit;
         
-        if (!category) {
-            console.log('No category provided');
-            return res.status(400).json({
-                success: false,
-                message: 'Category parameter is required'
-            });
-        }
+        // Find news for this category
+        const query = { category: category };
         
-        console.log(`Finding news with category: "${category}"`);
+        // Get count for pagination
+        const total = await News.countDocuments(query);
         
-        // Create a case-insensitive regex for flexible matching
-        const categoryRegex = new RegExp('^' + category + '$', 'i');
-        const news = await News.find({ 
-                category: categoryRegex 
-            })
+        // Get news articles
+        const news = await News.find(query)
             .sort({ publishedAt: -1 })
-            .limit(10);
+            .skip(skip)
+            .limit(limit);
         
-        console.log(`Found ${news.length} items for category "${category}"`);
+        console.log(`[API] Found ${news.length} articles for category: ${category}`);
         
-        if (news.length === 0) {
-            // Try to find with partial match if exact match returns no results
-            console.log('No exact matches, trying partial match');
-            const partialMatchNews = await News.find({
-                    category: { $regex: category, $options: 'i' }
-                })
-                .sort({ publishedAt: -1 })
-                .limit(10);
-                
-            console.log(`Found ${partialMatchNews.length} items with partial match for "${category}"`);
-            
-            return res.json({
-                success: true,
-                data: partialMatchNews
-            });
-        }
+        // Filter to only include sports-related articles if needed
+        const sportsRelatedNews = news.filter(article => 
+            isSportsRelated(article)
+        );
         
-        res.json({
+        console.log(`[API] Filtered to ${sportsRelatedNews.length} sports-related articles`);
+        
+        // Calculate pagination data
+        const hasMore = total > skip + sportsRelatedNews.length;
+        const totalPages = Math.ceil(total / limit);
+        
+        return res.status(200).json({
             success: true,
-            data: news
+            data: sportsRelatedNews,
+            pagination: {
+                page,
+                limit,
+                totalItems: total,
+                totalPages,
+                hasMore
+            }
         });
     } catch (error) {
-        console.error(`Error fetching news for category ${req.params.category}:`, error);
-        res.status(500).json({
+        console.error(`[API] Error fetching news for category ${req.params.category}:`, error);
+        return res.status(200).json({
             success: false,
-            message: 'Error fetching category news'
+            message: 'Error fetching category news',
+            data: []
         });
     }
 });
 
 // Related news by ID
-router.get('/related/:id', async (req, res) => {
-    try {
-        const newsId = req.params.id;
-        
-        // Find the original news article first to get its category
-        const originalNews = await News.findById(newsId);
-        
-        if (!originalNews) {
-            return res.status(404).json({
-                success: false,
-                message: 'News article not found'
-            });
-        }
-        
-        // Find related news with the same category, excluding the original article
-        const relatedNews = await News.find({
-                _id: { $ne: newsId },
-                category: originalNews.category
-            })
-            .sort({ publishedAt: -1 })
-            .limit(5);
-        
-        res.json({
-            success: true,
-            data: relatedNews
-        });
-    } catch (error) {
-        console.error(`Error fetching related news for ID ${req.params.id}:`, error);
-        res.status(500).json({
-            success: false,
-            message: 'Error fetching related news'
-        });
-    }
-});
+router.get('/related/:id', newsController.getRelatedNews);
+router.get('/related-images', newsController.getRelatedImages);
 
 // Single news item by ID
 router.get('/:id', newsController.getNewsById);
 
 // Protected routes (admin only)
 router.post('/', protect, authorize('admin'), newsController.createNews);
-router.post('/import', protect, authorize('admin'), newsController.importScrapedNews);
+router.post('/import', protect, authorize('admin'), async (req, res) => {
+  try {
+    const { articles } = req.body;
+    
+    if (!articles || !Array.isArray(articles) || articles.length === 0) {
+      return res.status(400).json({
+        success: false,
+        message: 'No articles provided for import'
+      });
+    }
+    
+    let importedCount = 0;
+    const errors = [];
+    
+    // Process each article
+    for (const article of articles) {
+      try {
+        // Check if article already exists by URL to avoid duplicates
+        const existingByUrl = article.url ? await News.findOne({ url: article.url }) : null;
+        const existingByTitle = await News.findOne({ title: article.title });
+        
+        if (existingByUrl || existingByTitle) {
+          // Skip this article if it already exists
+          continue;
+        }
+        
+        // Ensure required fields
+        if (!article.title || !article.content) {
+          errors.push({
+            title: article.title || 'Unknown',
+            error: 'Missing required fields (title or content)'
+          });
+          continue;
+        }
+        
+        // Prepare a summary if not available
+        let summary = article.summary;
+        if (!summary && article.content) {
+          // Generate a summary from the content (first 150 characters)
+          summary = article.content.substring(0, 150) + '...';
+        } else if (!summary) {
+          summary = article.title;
+        }
+        
+        // Create the news article
+        const newsItem = new News({
+          title: article.title,
+          content: article.content,
+          summary: summary,
+          imageUrl: article.imageUrl || '/img/placeholder.jpg',
+          url: article.url || '',
+          source: article.source || 'Web Import',
+          author: article.author || 'Khelkud Nepal',
+          publishedAt: article.publishedAt || new Date(),
+          category: article.category || 'Other',
+          tags: article.tags || [],
+          isFeatured: article.isFeatured || false
+        });
+        
+        await newsItem.save();
+        importedCount++;
+      } catch (err) {
+        console.error('Error importing article:', err);
+        errors.push({
+          title: article.title || 'Unknown',
+          error: err.message
+        });
+      }
+    }
+    
+    return res.status(200).json({
+      success: true,
+      imported: importedCount,
+      total: articles.length,
+      errors: errors.length > 0 ? errors : undefined
+    });
+  } catch (err) {
+    console.error('Error importing news articles:', err);
+    return res.status(500).json({
+      success: false,
+      message: 'Server error while importing news',
+      error: err.message
+    });
+  }
+});
 router.put('/:id', protect, authorize('admin'), newsController.updateNews);
 router.delete('/:id', protect, authorize('admin'), newsController.deleteNews);
 

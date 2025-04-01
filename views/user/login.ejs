@@ -70,7 +70,8 @@
         },
         body: JSON.stringify({
           identifier,
-          password
+          password,
+          rememberMe: document.getElementById('rememberMe').checked
         })
       })
       .then(response => response.json())

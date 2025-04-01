@@ -1,0 +1,156 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Unsubscribed | Khelkud Nepal</title>
+  <link rel="stylesheet" href="/css/styles.css">
+  <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
+  <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.1/font/bootstrap-icons.css">
+</head>
+<body>
+  <%- include('../partials/header') %>
+
+  <div class="container mt-5 mb-5">
+    <div class="row justify-content-center">
+      <div class="col-md-8 col-lg-6">
+        <div class="card shadow-sm border-0">
+          <div class="card-body text-center p-5">
+            <div class="mb-4">
+              <i class="bi bi-envelope-x text-danger" style="font-size: 5rem;"></i>
+            </div>
+            <h2>You've Been Unsubscribed</h2>
+            <p class="lead mb-4">We're sorry to see you go!</p>
+            <p>Your email <strong><%= email %></strong> has been successfully removed from our newsletter subscription list.</p>
+            
+            <div class="mt-5">
+              <p>Changed your mind?</p>
+              <a href="javascript:void(0)" class="btn btn-outline-primary" id="resubscribe-btn">Resubscribe</a>
+            </div>
+            
+            <div class="mt-4 pt-4 border-top">
+              <a href="/" class="btn btn-primary">Return to Homepage</a>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- Resubscribe Form Modal -->
+  <div class="modal fade" id="resubscribeModal" tabindex="-1" aria-labelledby="resubscribeModalLabel" aria-hidden="true">
+    <div class="modal-dialog">
+      <div class="modal-content">
+        <div class="modal-header">
+          <h5 class="modal-title" id="resubscribeModalLabel">Resubscribe to Newsletter</h5>
+          <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+        </div>
+        <div class="modal-body">
+          <form id="resubscribe-form">
+            <div class="mb-3">
+              <label for="resubscribe-email" class="form-label">Email address</label>
+              <input type="email" class="form-control" id="resubscribe-email" value="<%= email %>" readonly>
+            </div>
+            <div class="mb-3">
+              <label for="resubscribe-frequency" class="form-label">Update frequency</label>
+              <select class="form-select" id="resubscribe-frequency">
+                <option value="daily">Daily Updates</option>
+                <option value="weekly" selected>Weekly Digest</option>
+                <option value="monthly">Monthly Roundup</option>
+              </select>
+            </div>
+            <div class="mb-3">
+              <label class="form-label">Categories of interest</label>
+              <div class="form-check">
+                <input class="form-check-input" type="checkbox" value="Football" id="category-football" checked>
+                <label class="form-check-label" for="category-football">Football</label>
+              </div>
+              <div class="form-check">
+                <input class="form-check-input" type="checkbox" value="Cricket" id="category-cricket" checked>
+                <label class="form-check-label" for="category-cricket">Cricket</label>
+              </div>
+              <div class="form-check">
+                <input class="form-check-input" type="checkbox" value="Basketball" id="category-basketball">
+                <label class="form-check-label" for="category-basketball">Basketball</label>
+              </div>
+              <div class="form-check">
+                <input class="form-check-input" type="checkbox" value="Volleyball" id="category-volleyball">
+                <label class="form-check-label" for="category-volleyball">Volleyball</label>
+              </div>
+              <div class="form-check">
+                <input class="form-check-input" type="checkbox" value="Other" id="category-other">
+                <label class="form-check-label" for="category-other">Other Sports</label>
+              </div>
+            </div>
+          </form>
+        </div>
+        <div class="modal-footer">
+          <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancel</button>
+          <button type="button" class="btn btn-primary" id="submit-resubscribe">Resubscribe</button>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <%- include('../partials/footer') %>
+  
+  <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
+  <script src="/js/main.js"></script>
+  <script>
+    document.addEventListener('DOMContentLoaded', function() {
+      // Initialize modal
+      const resubscribeModal = new bootstrap.Modal(document.getElementById('resubscribeModal'));
+      
+      // Show modal on resubscribe button click
+      document.getElementById('resubscribe-btn').addEventListener('click', function() {
+        resubscribeModal.show();
+      });
+      
+      // Handle resubscribe form submission
+      document.getElementById('submit-resubscribe').addEventListener('click', function() {
+        const email = document.getElementById('resubscribe-email').value;
+        const frequency = document.getElementById('resubscribe-frequency').value;
+        
+        // Get selected categories
+        const categories = [];
+        document.querySelectorAll('input[type=checkbox]:checked').forEach(checkbox => {
+          categories.push(checkbox.value);
+        });
+        
+        // Submit form
+        fetch('/api/subscriptions', {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/json'
+          },
+          body: JSON.stringify({
+            email,
+            preferences: {
+              frequency,
+              categories
+            }
+          })
+        })
+        .then(response => response.json())
+        .then(data => {
+          if (data.success) {
+            resubscribeModal.hide();
+            alert('Thank you for resubscribing! Please check your email to confirm.');
+            
+            // Redirect to homepage after a short delay
+            setTimeout(() => {
+              window.location.href = '/';
+            }, 2000);
+          } else {
+            alert(data.message || 'There was an error with your resubscription. Please try again.');
+          }
+        })
+        .catch(error => {
+          console.error('Error resubscribing:', error);
+          alert('There was an error with your resubscription. Please try again.');
+        });
+      });
+    });
+  </script>
+</body>
+</html> 

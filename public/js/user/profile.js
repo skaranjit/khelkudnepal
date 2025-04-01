@@ -10,23 +10,41 @@ document.addEventListener('DOMContentLoaded', function() {
 async function loadUserProfile() {
   try {
     showLoader();
+    console.log('Fetching user profile data...');
     
-    const response = await fetch('/api/users/profile');
-    
-    if (!response.ok) {
-      throw new Error('Failed to load profile');
+    // First use window.user (session data) if available - this gives immediate feedback
+    if (window.user && Object.keys(window.user).length > 0) {
+      console.log('Using session user data initially');
+      populateFormFields(window.user);
     }
     
-    const { success, data } = await response.json();
+    const response = await fetch('/api/users/profile');
+    console.log('Profile API response status:', response.status);
     
-    if (success) {
-      populateFormFields(data);
+    if (!response.ok) {
+      const errorText = await response.text();
+      console.error('Error response body:', errorText);
+      throw new Error(`Failed to load profile: ${response.status} ${response.statusText}`);
+    }
+    
+    const responseData = await response.json();
+    console.log('Profile data received:', responseData.success);
+    
+    if (responseData.success) {
+      // Update form with latest data from API
+      populateFormFields(responseData.data);
     } else {
-      showNotification('Error loading profile data', 'danger');
+      throw new Error(responseData.message || 'Failed to load profile data');
     }
   } catch (error) {
     console.error('Error loading profile:', error);
     showNotification('Error loading profile: ' + error.message, 'danger');
+    
+    // Try to recover by displaying what we have
+    if (window.user) {
+      console.log('Falling back to session user data');
+      populateFormFields(window.user);
+    }
   } finally {
     hideLoader();
   }
@@ -438,24 +456,37 @@ async function handleSubscriptionSubmit(e) {
 }
 
 /**
- * Show loader
+ * Show a loading indicator
  */
 function showLoader() {
-  // Add a loader to the page if it doesn't exist
-  if (!document.getElementById('profile-loader')) {
-    const loader = document.createElement('div');
+  // Create loader if it doesn't exist
+  let loader = document.getElementById('profile-loader');
+  
+  if (!loader) {
+    loader = document.createElement('div');
     loader.id = 'profile-loader';
-    loader.className = 'position-fixed top-0 start-0 w-100 h-100 d-flex justify-content-center align-items-center bg-white bg-opacity-75';
-    loader.style.zIndex = '9999';
+    loader.className = 'text-center my-3';
     loader.innerHTML = `
       <div class="spinner-border text-primary" role="status">
         <span class="visually-hidden">Loading...</span>
       </div>
+      <p class="mt-2">Loading your profile data...</p>
     `;
-    document.body.appendChild(loader);
+    
+    // Insert at the top of the tab content
+    const tabContent = document.querySelector('.tab-content');
+    if (tabContent) {
+      tabContent.prepend(loader);
+    }
   } else {
-    document.getElementById('profile-loader').style.display = 'flex';
+    loader.style.display = 'block';
   }
+  
+  // Hide form elements while loading
+  document.querySelectorAll('form').forEach(form => {
+    form.style.opacity = '0.5';
+    form.style.pointerEvents = 'none';
+  });
 }
 
 /**
@@ -466,6 +497,12 @@ function hideLoader() {
   if (loader) {
     loader.style.display = 'none';
   }
+  
+  // Re-enable form elements
+  document.querySelectorAll('form').forEach(form => {
+    form.style.opacity = '1';
+    form.style.pointerEvents = 'auto';
+  });
 }
 
 /**
@@ -493,4 +530,21 @@ function showNotification(message, type = 'info') {
       }
     }, 150);
   }, 5000);
-} 
+}
+
+// Add a safety function to make sure forms are always enabled
+window.addEventListener('DOMContentLoaded', function() {
+  // Initial safety check - make sure forms are enabled after 5 seconds no matter what
+  setTimeout(() => {
+    document.querySelectorAll('form').forEach(form => {
+      form.style.opacity = '1';
+      form.style.pointerEvents = 'auto';
+    });
+    
+    // And hide any loaders
+    const loader = document.getElementById('profile-loader');
+    if (loader) {
+      loader.style.display = 'none';
+    }
+  }, 5000);
+}); 

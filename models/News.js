@@ -1,6 +1,7 @@
 const mongoose = require('mongoose');
+const Schema = mongoose.Schema;
 
-const NewsSchema = new mongoose.Schema({
+const NewsSchema = new Schema({
   title: {
     type: String,
     required: [true, 'Please add a title'],
@@ -10,12 +11,10 @@ const NewsSchema = new mongoose.Schema({
   content: {
     type: String,
     required: [true, 'Please add content'],
-    minlength: [10, 'Content must be at least 10 characters']
   },
   summary: {
     type: String,
     required: [true, 'Please add a summary'],
-    trim: true,
     maxlength: [500, 'Summary cannot be more than 500 characters']
   },
   category: {
@@ -24,62 +23,92 @@ const NewsSchema = new mongoose.Schema({
     enum: ['Cricket', 'Football', 'Basketball', 'Volleyball', 'Tennis', 'Athletics', 'Olympics', 'Other'],
     default: 'Other'
   },
-  publishedAt: {
-    type: Date,
-    default: Date.now
-  },
   source: {
     type: String,
     default: 'Khelkud Nepal'
   },
   author: {
     type: String,
-    default: 'Staff Reporter'
+    default: 'Khelkud Nepal'
   },
   url: {
     type: String,
-    validate: {
-      validator: function(value) {
-        // Allow URLs starting with http:// or https://
-        const absoluteUrlPattern = /^https?:\/\/(www\.)?[-a-zA-Z0-9@:%._\+~#=]{1,256}\.[a-zA-Z0-9()]{1,6}\b([-a-zA-Z0-9()@:%_\+.~#?&//=]*)/;
-        // Allow relative URLs starting with a slash
-        const relativeUrlPattern = /^\/.*/;
-        
-        return absoluteUrlPattern.test(value) || relativeUrlPattern.test(value);
-      },
-      message: 'Please use a valid URL (absolute with HTTP/HTTPS or relative starting with /)'
-    }
+    default: ''
   },
   imageUrl: {
     type: String,
-    default: '/images/placeholder.jpg'
+    default: '/img/placeholder.jpg'
   },
+  // Support for multiple images
   images: {
-    type: [String],
+    type: Array,
     default: []
   },
-  imageAttribution: {
-    type: String,
-    default: ''
+  publishedAt: {
+    type: Date,
+    default: Date.now
   },
   tags: {
     type: [String],
     default: []
+  },
+  isFeatured: {
+    type: Boolean,
+    default: false
+  },
+  viewCount: {
+    type: Number,
+    default: 0
+  },
+  metadata: {
+    type: Object,
+    default: {}
   },
   location: {
     country: {
       type: String,
       default: 'Nepal'
     },
-    city: String
+    city: String,
+    venue: String
   },
-  isFeatured: {
-    type: Boolean,
-    default: false
+  // Rich media fields
+  videos: [{
+    url: String,
+    title: String,
+    thumbnail: String,
+    provider: String
+  }],
+  // Enhanced social sharing
+  socialData: {
+    shareCount: {
+      type: Number,
+      default: 0
+    },
+    likeCount: {
+      type: Number,
+      default: 0
+    },
+    commentCount: {
+      type: Number,
+      default: 0
+    }
   },
-  views: {
-    type: Number,
-    default: 0
+  // Enhanced match details
+  matchDetails: {
+    teams: [{
+      name: String,
+      score: String,
+      logo: String
+    }],
+    date: Date,
+    venue: String,
+    competition: String,
+    status: {
+      type: String,
+      enum: ['Upcoming', 'Live', 'Completed', 'Postponed', 'Cancelled'],
+      default: 'Completed'
+    }
   },
   createdAt: {
     type: Date,
@@ -91,23 +120,83 @@ const NewsSchema = new mongoose.Schema({
   }
 });
 
-// Method to increment view count
-NewsSchema.methods.incrementViewCount = function() {
-  this.views += 1;
-  return this.save();
-};
-
-// Add a pre-save hook to copy the main imageUrl to images array if empty
+// Pre-save hook to ensure images array contains imageUrl if empty
 NewsSchema.pre('save', function(next) {
-  // If images array is empty and we have an imageUrl, add it to the images array
-  if (this.images.length === 0 && this.imageUrl && this.imageUrl !== '/images/placeholder.jpg') {
-    this.images.push(this.imageUrl);
+  if (this.imageUrl && (!this.images || this.images.length === 0)) {
+    this.images = [{
+      url: this.imageUrl,
+      alt: this.title,
+      caption: ''
+    }];
   }
   
-  // Update the timestamps
-  this.updatedAt = Date.now();
+  // Update the updatedAt field
+  this.updatedAt = new Date();
+  
+  // If metadata contains match statistics, try to update matchDetails
+  if (this.metadata && this.metadata.matchStatistics && this.metadata.matchStatistics.scores) {
+    const { scores } = this.metadata.matchStatistics;
+    
+    // Only update if matchDetails doesn't already have teams data
+    if (!this.matchDetails || !this.matchDetails.teams || this.matchDetails.teams.length === 0) {
+      this.matchDetails = this.matchDetails || {};
+      this.matchDetails.teams = [
+        { name: scores.team1?.name, score: scores.team1?.score },
+        { name: scores.team2?.name, score: scores.team2?.score }
+      ];
+    }
+    
+    // Update match date if available
+    if (this.metadata.eventDate && !this.matchDetails.date) {
+      try {
+        this.matchDetails.date = new Date(this.metadata.eventDate);
+      } catch (err) {
+        // If parsing fails, don't update
+      }
+    }
+    
+    // Update venue if available
+    if (this.metadata.eventLocation && !this.matchDetails.venue) {
+      this.matchDetails.venue = this.metadata.eventLocation;
+    }
+  }
   
   next();
 });
+
+// Method to increment view count
+NewsSchema.methods.incrementViewCount = function() {
+  this.viewCount = this.viewCount + 1;
+  return this.save();
+};
+
+// Method to increment share count
+NewsSchema.methods.incrementShareCount = function() {
+  if (!this.socialData) {
+    this.socialData = { shareCount: 0, likeCount: 0, commentCount: 0 };
+  }
+  this.socialData.shareCount = (this.socialData.shareCount || 0) + 1;
+  return this.save();
+};
+
+// Virtual for formatted date
+NewsSchema.virtual('formattedDate').get(function() {
+  return this.publishedAt.toLocaleDateString('en-US', { 
+    weekday: 'long', 
+    year: 'numeric', 
+    month: 'long', 
+    day: 'numeric' 
+  });
+});
+
+// Virtual for reading time
+NewsSchema.virtual('readingTime').get(function() {
+  const wordsPerMinute = 200;
+  const wordCount = this.content.split(/\s+/).length;
+  return Math.ceil(wordCount / wordsPerMinute);
+});
+
+// Index for better search performance
+NewsSchema.index({ title: 'text', content: 'text', tags: 'text' });
 
 module.exports = mongoose.model('News', NewsSchema); 

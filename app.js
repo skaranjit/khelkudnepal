@@ -1,6 +1,7 @@
 const express = require('express');
 const mongoose = require('mongoose');
 const session = require('express-session');
+const MongoStore = require('connect-mongo');
 const path = require('path');
 const cors = require('cors');
 const dotenv = require('dotenv');
@@ -26,15 +27,37 @@ app.use(fileUpload({
   tempFileDir: '/tmp/'
 }));
 
-// Set up session
+// Database connection
+const username = encodeURIComponent(process.env.MONGO_USERNAME || "screamindeath");
+const password = encodeURIComponent(process.env.MONGO_PASSWORD || "Asdlkj12!@");
+const cluster = process.env.MONGO_CLUSTER || "khelkudnepal.avsi6dg.mongodb.net";
+const dbName = "khelkud_nepal";
+
+// Build MongoDB Atlas connection string
+const uri = `mongodb+srv://${username}:${password}@${cluster}/?retryWrites=true&w=majority&appName=khelkudNepal`;
+const localUri = process.env.MONGODB_URI || 'mongodb://localhost:27017/khelkud_nepal';
+
+// Set up session with MongoDB store
 app.use(session({
   secret: process.env.SESSION_SECRET || 'khelkud-nepal-secret',
   resave: false,
-  saveUninitialized: true,
+  saveUninitialized: false,
   cookie: { 
-    maxAge: 86400000, // 24 hours
-    httpOnly: true
-  }
+    maxAge: 86400000, // 24 hours by default
+    httpOnly: true,
+    secure: process.env.NODE_ENV === 'production', // use secure cookies in production
+    sameSite: 'lax' // helps prevent CSRF attacks
+  },
+  store: MongoStore.create({
+    mongoUrl: uri,
+    collectionName: 'sessions',
+    ttl: 86400, // 1 day in seconds (default)
+    autoRemove: 'native',
+    crypto: {
+      secret: process.env.SESSION_SECRET || 'khelkud-nepal-secret'
+    },
+    touchAfter: 24 * 3600 // time period in seconds between session updates
+  })
 }));
 
 // Global middleware to make user data available to all views
@@ -70,15 +93,26 @@ const userRoutes = require('./routes/user');
 const viewRoutes = require('./routes/viewRoutes');
 const commentRoutes = require('./routes/commentRoutes');
 const settingsRoutes = require('./routes/settings');
+const matchesRoutes = require('./routes/matches');
+const leaguesRoutes = require('./routes/leagues');
 
 app.use('/api/news', newsRoutes);
 app.use('/api/auth', authRoutes);
 app.use('/admin', adminRoutes);
 app.use('/api/subscriptions', subscriptionRoutes);
 app.use('/api/users', userRoutes);
+
+// Log all requests to help with debugging
+app.use((req, res, next) => {
+  console.log(`[${new Date().toISOString()}] ${req.method} ${req.originalUrl}`);
+  next();
+});
+
 app.use('/', viewRoutes); // Main view routes
 app.use('/api/comments', commentRoutes);
 app.use('/api/settings', settingsRoutes);
+app.use('/api/matches', matchesRoutes);
+app.use('/api/leagues', leaguesRoutes);
 
 // Home route
 app.get('/', (req, res) => {
@@ -121,15 +155,12 @@ app.get('/search', (req, res) => {
   });
 });
 
-// Database connection
-const username = encodeURIComponent(process.env.MONGO_USERNAME || "screamindeath");
-const password = encodeURIComponent(process.env.MONGO_PASSWORD || "Asdlkj12!@");
-const cluster = process.env.MONGO_CLUSTER || "khelkudnepal.avsi6dg.mongodb.net";
-const dbName = "khelkud_nepal";
-
-// Build MongoDB Atlas connection string
-const uri = `mongodb+srv://${username}:${password}@${cluster}/?retryWrites=true&w=majority&appName=khelkudNepal`;
-const localUri = process.env.MONGODB_URI || 'mongodb://localhost:27017/khelkud_nepal';
+// Set up routes
+app.get('/subscribe', (req, res) => {
+  res.render('subscription/form', {
+    user: req.session.user || null
+  });
+});
 
 // MongoDB connection options
 const clientOptions = { 
@@ -151,6 +182,25 @@ async function connectToDatabase() {
     // Initialize database with sample data if empty
     const newsController = require('./controllers/newsController');
     await newsController.checkAndPopulateNews();
+    
+    // Schedule automatic match updates
+    const MatchUpdateScraper = require('./utils/matchUpdateScraper');
+
+    // Set up a schedule to update live matches every 5 minutes
+    function scheduleMatchUpdates() {
+      console.log('Setting up automatic match updates scheduler');
+      
+      // Run updates immediately on startup
+      MatchUpdateScraper.updateAllLiveMatches();
+      
+      // Then schedule to run every 5 minutes
+      setInterval(() => {
+        MatchUpdateScraper.updateAllLiveMatches();
+      }, 5 * 60 * 1000); // 5 minutes
+    }
+
+    // Call this after database connection is established
+    scheduleMatchUpdates();
     
     return true;
   } catch (atlasError) {

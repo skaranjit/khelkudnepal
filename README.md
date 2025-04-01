@@ -93,4 +93,23 @@ This project is licensed under the ISC License.
 
 ## Contributing
 
-Contributions are welcome! Please feel free to submit a Pull Request. 
+Contributions are welcome! Please feel free to submit a Pull Request.
+
+## Web Scraping with Browserless
+
+This application uses Puppeteer for web scraping news content. You can configure it to use either:
+
+1. **Local Puppeteer** (default): Uses a local Chrome browser instance
+2. **Browserless.io** (recommended for production): Uses a cloud-based headless browser service
+
+### Setting up Browserless
+
+1. Sign up for an account at [Browserless.io](https://www.browserless.io/)
+2. Get your API key from the dashboard
+3. Add it to your `.env` file:
+
+```
+BROWSERLESS_API_KEY=your-api-key-here
+```
+
+When the API key is present, the application will automatically use Browserless instead of launching a local browser, which improves performance and reliability. 

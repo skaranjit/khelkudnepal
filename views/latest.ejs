@@ -133,31 +133,61 @@
           
           if (data.success && data.data.length > 0) {
             data.data.forEach(article => {
-              const html = `
-                <div class="col-md-6 mb-4">
+              $('#news-container').append(`
+                <div class="col-md-4 mb-4">
                   <div class="card h-100">
-                    <div class="image-container">
-                      <img src="${article.imageUrl || '/images/placeholder.jpg'}" 
-                           class="card-img-top loading" 
-                           alt="${article.title}" 
-                           onerror="this.onerror=null; this.src='/images/placeholder.jpg'; this.classList.add('fallback-image');"
-                           onload="this.classList.remove('loading')">
-                    </div>
+                    <img src="${article.imageUrl || '/images/placeholder.jpg'}" class="card-img-top" alt="${article.title}" onerror="this.src='/images/placeholder.jpg'">
                     <div class="card-body">
-                      <span class="badge bg-primary mb-2">${article.category}</span>
                       <h5 class="card-title">${article.title}</h5>
-                      <p class="card-text">${article.summary.substring(0, 100)}...</p>
-                    </div>
-                    <div class="card-footer bg-white border-0">
-                      <div class="d-flex justify-content-between align-items-center">
-                        <small class="text-muted">${formatDate(article.publishedAt)}</small>
-                        <a href="/news/${article._id}" class="btn btn-sm btn-outline-primary">Read More</a>
+                      <p class="card-text text-muted">
+                        <small>
+                          <i class="bi bi-calendar3"></i> ${new Date(article.publishedAt).toLocaleDateString('en-US', { year: 'numeric', month: 'short', day: 'numeric' })} 
+                          <span class="ms-2"><i class="bi bi-person"></i> ${article.author || 'Staff'}</span>
+                        </small>
+                      </p>
+                      <div class="article-summary">
+                        ${article.summary ? `
+                          <div class="summary-content">
+                            ${(() => {
+                              // Split summary into sentences properly
+                              const sentences = article.summary.match(/[^\.!\?]+[\.!\?]+/g) || [article.summary];
+                              const firstSentence = sentences[0] || '';
+                              const restSentences = sentences.slice(1).join(' ') || '';
+                              
+                              let html = `<p class="lead-sentence">${firstSentence}</p>`;
+                              
+                              if (restSentences) {
+                                html += `<p class="supporting-text">${restSentences}</p>`;
+                              }
+                              
+                              // Add key details section
+                              html += '<div class="key-details mt-2">';
+                              
+                              // Add tags if available
+                              if (article.tags && article.tags.length > 0) {
+                                article.tags.slice(0, 2).forEach(tag => {
+                                  html += `<span class="badge bg-primary me-1">${tag}</span>`;
+                                });
+                              }
+                              
+                              // Add source if available
+                              if (article.source) {
+                                html += `<span class="badge bg-secondary me-1"><i class="bi bi-newspaper"></i> ${article.source}</span>`;
+                              }
+                              
+                              html += '</div>';
+                              
+                              return html;
+                            })()}
+                          </div>` 
+                          : '<p class="card-text text-muted">No summary available</p>'
+                        }
                       </div>
+                      <a href="/news/${article._id}" class="btn btn-primary">Read More</a>
                     </div>
                   </div>
                 </div>
-              `;
-              newsContainer.innerHTML += html;
+              `);
             });
             
             // Update load more button

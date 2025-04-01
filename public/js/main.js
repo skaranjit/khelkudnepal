@@ -273,6 +273,42 @@ function setupEventListeners() {
     });
   }
   
+  // Add global delegate event listener for read more toggles
+  document.addEventListener('click', function(e) {
+    // Check if the clicked element is a read more toggle button
+    if (e.target.classList.contains('read-more-toggle')) {
+      console.log('Read more toggle clicked');
+      e.preventDefault();
+      
+      // Find the parent card
+      const card = e.target.closest('.news-card');
+      if (!card) {
+        console.error('Could not find parent news card');
+        return;
+      }
+      
+      // Find text containers
+      const shortText = card.querySelector('.short-text');
+      const fullContent = card.querySelector('.full-content');
+      
+      if (!shortText || !fullContent) {
+        console.error('Could not find text containers');
+        return;
+      }
+      
+      // Toggle display
+      if (fullContent.style.display === 'none') {
+        shortText.style.display = 'none';
+        fullContent.style.display = 'block';
+        e.target.textContent = 'Show Less';
+      } else {
+        shortText.style.display = 'block';
+        fullContent.style.display = 'none';
+        e.target.textContent = 'Read More';
+      }
+    }
+  });
+  
   // Category filter - handle both index page buttons and navbar dropdown
   const categoryLinks = document.querySelectorAll('.category-link');
   console.log('Found category links:', categoryLinks.length);
@@ -700,10 +736,6 @@ function createNewsCard(news) {
                   </div>
                 </div>
               ` : ''}
-              
-              <p class="mt-3">
-                <a href="/news/${news._id}" class="btn btn-sm btn-primary">View Full Article</a>
-              </p>
             </div>
           </div>
         </div>

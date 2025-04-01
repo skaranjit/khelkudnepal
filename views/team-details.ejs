@@ -1,0 +1,364 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title><%= title %> | Khelkud Nepal</title>
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/css/bootstrap.min.css" rel="stylesheet">
+    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.3/font/bootstrap-icons.min.css">
+    <link rel="stylesheet" href="/css/styles.css">
+    <style>
+        .team-logo {
+            width: 150px;
+            height: 150px;
+            object-fit: contain;
+        }
+        .league-logo {
+            width: 40px;
+            height: 40px;
+            object-fit: contain;
+        }
+        .news-card {
+            transition: transform 0.2s;
+        }
+        .news-card:hover {
+            transform: translateY(-3px);
+            box-shadow: 0 5px 15px rgba(0,0,0,0.1);
+        }
+        .refresh-btn {
+            cursor: pointer;
+        }
+    </style>
+</head>
+<body>
+    <%- include('./partials/header') %>
+
+    <div class="container mt-4 mb-5">
+        <nav aria-label="breadcrumb">
+            <ol class="breadcrumb">
+                <li class="breadcrumb-item"><a href="/leagues">Leagues</a></li>
+                <li class="breadcrumb-item"><a href="/leagues/<%= league._id %>"><%= league.name %></a></li>
+                <li class="breadcrumb-item active" aria-current="page"><%= team.name %></li>
+            </ol>
+        </nav>
+        
+        <div class="row mb-4">
+            <div class="col-lg-8">
+                <div class="d-flex align-items-center">
+                    <img src="<%= team.logo || '/images/default-team-logo.png' %>" alt="<%= team.name %>" class="team-logo me-4">
+                    <div>
+                        <h1 class="mb-1"><%= team.name %></h1>
+                        <p class="text-muted mb-2"><%= team.location %></p>
+                        <div class="d-flex align-items-center">
+                            <a href="/leagues/<%= league._id %>" class="d-flex align-items-center text-decoration-none me-3">
+                                <img src="<%= league.logo || '/images/default-league-logo.png' %>" alt="<%= league.name %>" class="league-logo me-2">
+                                <span><%= league.name %></span>
+                            </a>
+                        </div>
+                    </div>
+                </div>
+                
+                <div class="mt-4">
+                    <h3>About <%= team.name %></h3>
+                    <p><%= team.description || 'No detailed information available for this team.' %></p>
+                </div>
+                
+                <div class="mt-4">
+                    <h3>Team Statistics</h3>
+                    <div class="row text-center">
+                        <div class="col-md-3 mb-3">
+                            <div class="card">
+                                <div class="card-body">
+                                    <h6 class="text-muted">Matches Played</h6>
+                                    <h2><%= team.played %></h2>
+                                </div>
+                            </div>
+                        </div>
+                        <div class="col-md-3 mb-3">
+                            <div class="card bg-success text-white">
+                                <div class="card-body">
+                                    <h6>Wins</h6>
+                                    <h2><%= team.won %></h2>
+                                </div>
+                            </div>
+                        </div>
+                        <div class="col-md-3 mb-3">
+                            <div class="card bg-secondary text-white">
+                                <div class="card-body">
+                                    <h6>Draws</h6>
+                                    <h2><%= team.drawn %></h2>
+                                </div>
+                            </div>
+                        </div>
+                        <div class="col-md-3 mb-3">
+                            <div class="card bg-danger text-white">
+                                <div class="card-body">
+                                    <h6>Losses</h6>
+                                    <h2><%= team.lost %></h2>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                    <div class="row text-center mt-3">
+                        <div class="col-md-4 mb-3">
+                            <div class="card">
+                                <div class="card-body">
+                                    <h6 class="text-muted">Goals For</h6>
+                                    <h2><%= team.goalsFor %></h2>
+                                </div>
+                            </div>
+                        </div>
+                        <div class="col-md-4 mb-3">
+                            <div class="card">
+                                <div class="card-body">
+                                    <h6 class="text-muted">Goals Against</h6>
+                                    <h2><%= team.goalsAgainst %></h2>
+                                </div>
+                            </div>
+                        </div>
+                        <div class="col-md-4 mb-3">
+                            <div class="card bg-primary text-white">
+                                <div class="card-body">
+                                    <h6>Points</h6>
+                                    <h2><%= team.points %></h2>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+            
+            <div class="col-lg-4">
+                <div class="card mb-4">
+                    <div class="card-header">
+                        <h5 class="mb-0">Team Information</h5>
+                    </div>
+                    <div class="card-body">
+                        <ul class="list-group list-group-flush">
+                            <li class="list-group-item d-flex justify-content-between">
+                                <span>Location:</span>
+                                <span class="fw-bold"><%= team.location %></span>
+                            </li>
+                            <% if (team.founded) { %>
+                                <li class="list-group-item d-flex justify-content-between">
+                                    <span>Founded:</span>
+                                    <span class="fw-bold"><%= team.founded %></span>
+                                </li>
+                            <% } %>
+                            <li class="list-group-item d-flex justify-content-between">
+                                <span>League:</span>
+                                <span class="fw-bold"><%= league.name %></span>
+                            </li>
+                            <li class="list-group-item d-flex justify-content-between">
+                                <span>Season:</span>
+                                <span class="fw-bold"><%= league.season %></span>
+                            </li>
+                            <li class="list-group-item d-flex justify-content-between">
+                                <span>Current Position:</span>
+                                <span class="fw-bold">
+                                    <% 
+                                    let position = 0;
+                                    league.teams.forEach((t, index) => {
+                                        if (t._id.toString() === team._id.toString()) {
+                                            position = index + 1;
+                                        }
+                                    });
+                                    %>
+                                    <%= position || 'N/A' %>
+                                </span>
+                            </li>
+                        </ul>
+                    </div>
+                </div>
+                
+                <div class="card mb-4">
+                    <div class="card-header d-flex justify-content-between align-items-center">
+                        <h5 class="mb-0">Team News</h5>
+                        <span class="refresh-btn" id="refresh-news" title="Refresh team news from web">
+                            <i class="bi bi-arrow-clockwise"></i> Update
+                        </span>
+                    </div>
+                    <div class="card-body p-0">
+                        <div id="team-news-container">
+                            <% if (teamNews && teamNews.length > 0) { %>
+                                <ul class="list-group list-group-flush">
+                                    <% teamNews.forEach(news => { %>
+                                        <li class="list-group-item">
+                                            <h6 class="mb-1"><a href="/news/<%= news._id %>"><%= news.title %></a></h6>
+                                            <small class="text-muted">
+                                                <%= new Date(news.publishedAt).toLocaleDateString('en-US', { day: 'numeric', month: 'short', year: 'numeric' }) %>
+                                            </small>
+                                        </li>
+                                    <% }); %>
+                                </ul>
+                            <% } else { %>
+                                <div class="p-3">
+                                    <div class="alert alert-secondary mb-0">
+                                        <i class="bi bi-info-circle me-2"></i>
+                                        No news available for <%= team.name %>. Click "Update" to fetch the latest news.
+                                    </div>
+                                </div>
+                            <% } %>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+        
+        <div class="card mb-4">
+            <div class="card-header">
+                <h3 class="mb-0">Recent Matches</h3>
+            </div>
+            <div class="card-body">
+                <div id="recent-matches-container">
+                    <% if (teamMatches && teamMatches.length > 0) { %>
+                        <div class="table-responsive">
+                            <table class="table table-hover">
+                                <thead>
+                                    <tr>
+                                        <th>Date</th>
+                                        <th>Competition</th>
+                                        <th>Match</th>
+                                        <th>Result</th>
+                                    </tr>
+                                </thead>
+                                <tbody>
+                                    <% teamMatches.forEach(match => { %>
+                                        <tr>
+                                            <td><%= new Date(match.date).toLocaleDateString('en-US', { day: 'numeric', month: 'short', year: 'numeric' }) %></td>
+                                            <td><%= match.competition %></td>
+                                            <td>
+                                                <div class="d-flex align-items-center">
+                                                    <span class="<%= match.homeTeam === team.name ? 'fw-bold' : '' %>"><%= match.homeTeam %></span>
+                                                    <span class="mx-2">vs</span>
+                                                    <span class="<%= match.awayTeam === team.name ? 'fw-bold' : '' %>"><%= match.awayTeam %></span>
+                                                </div>
+                                            </td>
+                                            <td>
+                                                <% if (match.status === 'completed') { %>
+                                                    <span class="<%= match.result === 'win' ? 'text-success' : (match.result === 'loss' ? 'text-danger' : 'text-secondary') %>">
+                                                        <%= match.score %>
+                                                    </span>
+                                                <% } else if (match.status === 'live') { %>
+                                                    <span class="badge bg-danger">LIVE</span>
+                                                <% } else { %>
+                                                    <span class="text-muted">Upcoming</span>
+                                                <% } %>
+                                            </td>
+                                        </tr>
+                                    <% }); %>
+                                </tbody>
+                            </table>
+                        </div>
+                    <% } else { %>
+                        <div class="alert alert-secondary">
+                            <i class="bi bi-info-circle me-2"></i>
+                            No recent matches available for <%= team.name %>.
+                        </div>
+                    <% } %>
+                </div>
+            </div>
+        </div>
+        
+        <div class="card">
+            <div class="card-header d-flex justify-content-between align-items-center">
+                <h3 class="mb-0">Latest News</h3>
+                <span class="refresh-btn" id="refresh-all-news" title="Refresh all news from web">
+                    <i class="bi bi-arrow-clockwise"></i> Update
+                </span>
+            </div>
+            <div class="card-body">
+                <div id="all-news-container">
+                    <% if (teamNews && teamNews.length > 0) { %>
+                        <div class="row">
+                            <% teamNews.forEach(news => { %>
+                                <div class="col-md-6 col-lg-4 mb-4">
+                                    <div class="card h-100 news-card">
+                                        <% if (news.imageUrl) { %>
+                                            <img src="<%= news.imageUrl %>" class="card-img-top" alt="<%= news.title %>">
+                                        <% } %>
+                                        <div class="card-body">
+                                            <h5 class="card-title"><%= news.title %></h5>
+                                            <p class="card-text text-muted">
+                                                <%= new Date(news.publishedAt).toLocaleDateString('en-US', { day: 'numeric', month: 'short', year: 'numeric' }) %>
+                                            </p>
+                                            <p class="card-text"><%= news.summary || news.excerpt || (news.content && news.content.substring(0, 150) + '...') || 'No content available.' %></p>
+                                            <a href="/news/<%= news._id %>" class="btn btn-primary">Read More</a>
+                                        </div>
+                                    </div>
+                                </div>
+                            <% }); %>
+                        </div>
+                    <% } else { %>
+                        <div class="alert alert-secondary">
+                            <i class="bi bi-info-circle me-2"></i>
+                            No news available for <%= team.name %>. Click "Update" to fetch the latest news.
+                        </div>
+                    <% } %>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <%- include('./partials/footer') %>
+    
+    <script>
+        document.addEventListener('DOMContentLoaded', function() {
+            const refreshNewsBtn = document.getElementById('refresh-news');
+            const refreshAllNewsBtn = document.getElementById('refresh-all-news');
+            
+            if (refreshNewsBtn) {
+                refreshNewsBtn.addEventListener('click', function() {
+                    refreshNewsBtn.innerHTML = '<i class="bi bi-arrow-clockwise"></i> Updating...';
+                    refreshNewsBtn.style.opacity = '0.7';
+                    
+                    // Fetch updated team news
+                    fetch('/api/leagues/<%= league._id %>/teams/<%= team._id %>/web-news')
+                        .then(response => response.json())
+                        .then(data => {
+                            if (data.success) {
+                                window.location.reload();
+                            } else {
+                                alert('Failed to update news: ' + data.error);
+                                refreshNewsBtn.innerHTML = '<i class="bi bi-arrow-clockwise"></i> Update';
+                                refreshNewsBtn.style.opacity = '1';
+                            }
+                        })
+                        .catch(error => {
+                            console.error('Error updating news:', error);
+                            alert('Failed to update news. Please try again later.');
+                            refreshNewsBtn.innerHTML = '<i class="bi bi-arrow-clockwise"></i> Update';
+                            refreshNewsBtn.style.opacity = '1';
+                        });
+                });
+            }
+            
+            if (refreshAllNewsBtn) {
+                refreshAllNewsBtn.addEventListener('click', function() {
+                    refreshAllNewsBtn.innerHTML = '<i class="bi bi-arrow-clockwise"></i> Updating...';
+                    refreshAllNewsBtn.style.opacity = '0.7';
+                    
+                    // Fetch all news
+                    fetch('/api/leagues/<%= league._id %>/teams/<%= team._id %>/web-news?full=true')
+                        .then(response => response.json())
+                        .then(data => {
+                            if (data.success) {
+                                window.location.reload();
+                            } else {
+                                alert('Failed to update news: ' + data.error);
+                                refreshAllNewsBtn.innerHTML = '<i class="bi bi-arrow-clockwise"></i> Update';
+                                refreshAllNewsBtn.style.opacity = '1';
+                            }
+                        })
+                        .catch(error => {
+                            console.error('Error updating news:', error);
+                            alert('Failed to update news. Please try again later.');
+                            refreshAllNewsBtn.innerHTML = '<i class="bi bi-arrow-clockwise"></i> Update';
+                            refreshAllNewsBtn.style.opacity = '1';
+                        });
+                });
+            }
+        });
+    </script>
+</body>
+</html> 
