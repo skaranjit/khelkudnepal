@@ -50,6 +50,30 @@ function fixImageUrl(url) {
   if (url === '/images/placeholder.svg') {
     return '/images/placeholder.jpg';
   }
+  
+  // Handle Google News API URLs
+  if (url.includes('news.google.com/api/attachments')) {
+    console.log('Fixing Google News API URL:', url);
+    
+    // Clean the URL properly
+    let fixedUrl = url;
+    
+    // Remove any prefixes that could break the URL
+    if (fixedUrl.startsWith('@')) {
+      fixedUrl = fixedUrl.substring(1);
+    }
+    
+    // If it doesn't start with http/https, add https protocol
+    if (!fixedUrl.startsWith('http')) {
+      fixedUrl = 'https://' + fixedUrl;
+    }
+    
+    // Use our proxy endpoint instead of direct Google News API URL
+    const proxyUrl = `/api/image-proxy?url=${encodeURIComponent(fixedUrl)}`;
+    console.log('Using proxy URL:', proxyUrl);
+    return proxyUrl;
+  }
+  
   return url;
 }
 
@@ -635,10 +659,45 @@ function createNewsCard(news) {
   }) : 'No date';
   
   // Default image if none available
-  const imageUrl = news.imageUrl || '/images/placeholder.jpg';
+  const imageUrl = fixImageUrl(news.imageUrl || '/images/placeholder.jpg');
   
   // Handle multiple images
   const hasMultipleImages = news.images && news.images.length > 1;
+  
+  // Process the images array to ensure we have proper URLs
+  let processedImages = [];
+  if (news.images && news.images.length > 0) {
+    console.log('Processing images array:', news.images);
+    
+    try {
+      processedImages = news.images.map((img, index) => {
+        // Log the original image value for debugging
+        console.log(`Image ${index}:`, img);
+        
+        // Check if the image is an object with url property or a direct string URL
+        let imgUrl;
+        if (typeof img === 'object' && img.url) {
+          imgUrl = img.url;
+          console.log(`Image ${index} is an object with url:`, imgUrl);
+        } else if (typeof img === 'string') {
+          imgUrl = img;
+          console.log(`Image ${index} is a string:`, imgUrl);
+        } else {
+          imgUrl = '/images/placeholder.jpg';
+          console.log(`Image ${index} has invalid format, using placeholder`);
+        }
+        
+        // Apply URL fixes for special cases like Google News API
+        const fixedUrl = fixImageUrl(imgUrl);
+        console.log(`Fixed URL for image ${index}:`, fixedUrl);
+        return fixedUrl;
+      });
+    } catch (error) {
+      console.error('Error processing images array:', error);
+      // If there's an error, use an empty array to avoid breaking the UI
+      processedImages = [];
+    }
+  }
   
   // Prepare more detailed summary
   const shortSummary = news.summary ? (news.summary.length > 150 ? news.summary.substring(0, 150) + '...' : news.summary) : '';
@@ -655,14 +714,14 @@ function createNewsCard(news) {
           <!-- Multiple image carousel -->
           <div id="carousel-${news._id}" class="carousel slide card-img-container" data-bs-ride="carousel">
             <div class="carousel-inner">
-              ${news.images.slice(0, 3).map((img, index) => `
+              ${processedImages.slice(0, 3).map((img, index) => `
                 <div class="carousel-item ${index === 0 ? 'active' : ''}">
                   <img src="${img}" class="card-img-top news-image" alt="${news.title} image ${index+1}" 
                       onerror="this.onerror=null; this.src='/images/placeholder.jpg';">
                 </div>
               `).join('')}
             </div>
-            ${news.images.length > 1 ? `
+            ${processedImages.length > 1 ? `
               <button class="carousel-control-prev" type="button" data-bs-target="#carousel-${news._id}" data-bs-slide="prev">
                 <span class="carousel-control-prev-icon" aria-hidden="true"></span>
                 <span class="visually-hidden">Previous</span>
@@ -724,11 +783,11 @@ function createNewsCard(news) {
                 </div>
               ` : ''}
               
-              ${hasMultipleImages && news.images.length > 3 ? `
+              ${hasMultipleImages && processedImages.length > 3 ? `
                 <div class="image-gallery mt-3">
                   <p class="mb-2"><strong>More Images:</strong></p>
                   <div class="row g-2">
-                    ${news.images.slice(3, 6).map((img, index) => `
+                    ${processedImages.slice(3, 6).map((img, index) => `
                       <div class="col-4">
                         <img src="${img}" class="img-fluid thumbnail rounded" alt="${news.title} additional image">
                       </div>
@@ -745,7 +804,7 @@ function createNewsCard(news) {
             <button class="btn btn-sm btn-primary read-more-toggle" data-news-id="${news._id}">Read More</button>
             <a href="/news/${news._id}" class="btn btn-sm btn-outline-primary ms-2">View Article</a>
           </div>
-          ${hasMultipleImages ? `<small class="text-muted"><i class="bi bi-images"></i> ${news.images.length} images</small>` : ''}
+          ${hasMultipleImages ? `<small class="text-muted"><i class="bi bi-images"></i> ${processedImages.length} images</small>` : ''}
         </div>
       </div>
     </div>

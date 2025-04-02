@@ -6,6 +6,7 @@ const path = require('path');
 const cors = require('cors');
 const dotenv = require('dotenv');
 const fileUpload = require('express-fileupload');
+const axios = require('axios');
 
 // Load environment variables
 dotenv.config();
@@ -113,6 +114,33 @@ app.use('/api/comments', commentRoutes);
 app.use('/api/settings', settingsRoutes);
 app.use('/api/matches', matchesRoutes);
 app.use('/api/leagues', leaguesRoutes);
+
+// Image proxy route for handling external images (especially Google News API)
+app.get('/api/image-proxy', async (req, res) => {
+  try {
+    const imageUrl = req.query.url;
+    if (!imageUrl) {
+      return res.status(400).send('Image URL is required');
+    }
+    
+    console.log('Proxying image:', imageUrl);
+    
+    // Forward the request to the actual image URL
+    const response = await axios.get(imageUrl, {
+      responseType: 'arraybuffer'
+    });
+    
+    // Set appropriate content type
+    const contentType = response.headers['content-type'];
+    res.setHeader('Content-Type', contentType);
+    
+    // Send the image data
+    return res.send(response.data);
+  } catch (error) {
+    console.error('Error proxying image:', error.message);
+    return res.status(500).sendFile(path.join(__dirname, 'public', 'images', 'placeholder.jpg'));
+  }
+});
 
 // Home route
 app.get('/', (req, res) => {
