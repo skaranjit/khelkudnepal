@@ -34,7 +34,7 @@ const cluster = process.env.MONGO_CLUSTER || "khelkudnepal.avsi6dg.mongodb.net";
 const dbName = "khelkud_nepal";
 
 // Build MongoDB Atlas connection string
-const uri = `mongodb+srv://${username}:${password}@${cluster}/?retryWrites=true&w=majority&appName=khelkudNepal`;
+const uri = `mongodb+srv://${username}:${password}@${cluster}/${dbName}?retryWrites=true&w=majority&appName=khelkudNepal`;
 const localUri = process.env.MONGODB_URI || 'mongodb://localhost:27017/khelkud_nepal';
 
 // Set up session with MongoDB store
@@ -183,25 +183,6 @@ async function connectToDatabase() {
     const newsController = require('./controllers/newsController');
     await newsController.checkAndPopulateNews();
     
-    // Schedule automatic match updates
-    const MatchUpdateScraper = require('./utils/matchUpdateScraper');
-
-    // Set up a schedule to update live matches every 5 minutes
-    function scheduleMatchUpdates() {
-      console.log('Setting up automatic match updates scheduler');
-      
-      // Run updates immediately on startup
-      MatchUpdateScraper.updateAllLiveMatches();
-      
-      // Then schedule to run every 5 minutes
-      setInterval(() => {
-        MatchUpdateScraper.updateAllLiveMatches();
-      }, 5 * 60 * 1000); // 5 minutes
-    }
-
-    // Call this after database connection is established
-    scheduleMatchUpdates();
-    
     return true;
   } catch (atlasError) {
     console.error('MongoDB Atlas connection error:', atlasError.message);
@@ -232,23 +213,6 @@ connectToDatabase().then(async (connected) => {
     console.log(`Server running on port ${PORT}${connected ? ' with database connection' : ' (without database connection)'}`);
   });
   
-  // Only proceed with background news scraping if database is connected
-  if (connected) {
-    // Run news seeding in the background
-    setTimeout(async () => {
-      try {
-        const newsController = require('./controllers/newsController');
-        console.log("Starting background news scraping process...");
-        
-        // Use the new background scraping function instead of seedSampleNews
-        await newsController.scheduleBackgroundScraping();
-        
-        console.log("Background news scraping process completed.");
-      } catch (err) {
-        console.error('Error in background news scraping:', err);
-      }
-    }, 3000); // Wait 3 seconds after server start before scraping
-  }
 }).catch(err => {
   console.error('Failed to initialize database connection:', err);
   console.log('Starting server without database connection...');

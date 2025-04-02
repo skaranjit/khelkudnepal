@@ -12,7 +12,6 @@ router.use(locationMiddleware);
 // Public routes
 router.get('/', newsController.getAllNews);
 router.get('/search', newsController.searchNews);
-router.get('/scrape', newsController.scrapeGoogleNews);
 router.get('/categories', newsController.getCategories);
 
 // Debug endpoint to check MongoDB connection and data
@@ -64,9 +63,6 @@ router.get('/debug', async (req, res) => {
         });
     }
 });
-
-// Refresh news from web sources (admin only)
-router.post('/refresh', protect, authorize('admin'), newsController.refreshNewsFromWeb);
 
 // Featured news
 router.get('/featured', async (req, res) => {
@@ -160,20 +156,13 @@ router.get('/category/:category', async (req, res) => {
         
         console.log(`[API] Found ${news.length} articles for category: ${category}`);
         
-        // Filter to only include sports-related articles if needed
-        const sportsRelatedNews = news.filter(article => 
-            isSportsRelated(article)
-        );
-        
-        console.log(`[API] Filtered to ${sportsRelatedNews.length} sports-related articles`);
-        
         // Calculate pagination data
-        const hasMore = total > skip + sportsRelatedNews.length;
+        const hasMore = total > skip + news.length;
         const totalPages = Math.ceil(total / limit);
         
         return res.status(200).json({
             success: true,
-            data: sportsRelatedNews,
+            data: news,
             pagination: {
                 page,
                 limit,
@@ -191,10 +180,6 @@ router.get('/category/:category', async (req, res) => {
         });
     }
 });
-
-// Related news by ID
-router.get('/related/:id', newsController.getRelatedNews);
-router.get('/related-images', newsController.getRelatedImages);
 
 // Single news item by ID
 router.get('/:id', newsController.getNewsById);
@@ -292,28 +277,22 @@ router.delete('/:id', protect, authorize('admin'), newsController.deleteNews);
 // Clear database and refresh with web data (admin only)
 router.post('/clear-and-refresh', protect, authorize('admin'), async (req, res) => {
   try {
-    console.log('Admin requested to clear database and fetch fresh news from web');
+    console.log('Admin requested to clear news database');
     
     // Clear all existing news articles
     await News.deleteMany({});
     console.log('Cleared all existing news articles');
     
-    // Call seedSampleNews to repopulate with fresh data
-    await newsController.seedSampleNews();
-    
-    // Count new articles
-    const count = await News.countDocuments();
-    
     return res.status(200).json({
       success: true,
-      message: `Successfully cleared database and added ${count} fresh news articles from web sources`,
-      count: count
+      message: `Successfully cleared news database`,
+      count: 0
     });
   } catch (error) {
-    console.error('Error clearing and refreshing news:', error);
+    console.error('Error clearing news database:', error);
     return res.status(500).json({
       success: false,
-      message: 'Error clearing and refreshing news from web',
+      message: 'Error clearing news database',
       error: error.message
     });
   }

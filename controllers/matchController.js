@@ -1,6 +1,5 @@
 const Match = require('../models/Match');
 const mongoose = require('mongoose');
-const MatchUpdateScraper = require('../utils/matchUpdateScraper');
 
 // Get all matches with optional filtering
 exports.getAllMatches = async (req, res) => {
@@ -558,65 +557,6 @@ exports.removeUpdate = async (req, res) => {
         res.status(500).json({
             success: false,
             error: 'Server error'
-        });
-    }
-};
-
-// @desc    Fetch match updates from web sources
-// @route   GET /api/matches/:id/web-updates
-// @access  Public
-exports.fetchWebUpdates = async (req, res) => {
-    try {
-        const match = await Match.findById(req.params.id);
-        
-        if (!match) {
-            return res.status(404).json({ success: false, error: 'Match not found' });
-        }
-        
-        // Only fetch web updates for live matches
-        if (match.status !== 'live') {
-            return res.status(400).json({ 
-                success: false, 
-                error: 'Can only fetch web updates for live matches' 
-            });
-        }
-        
-        // Fetch updates from web
-        const newUpdates = await MatchUpdateScraper.fetchUpdatesForMatch(match);
-        
-        if (newUpdates.length === 0) {
-            return res.status(200).json({ 
-                success: true, 
-                message: 'No new updates found',
-                data: { match, updates: match.updates }
-            });
-        }
-        
-        // Add only unique updates (avoid duplicates)
-        const existingTexts = match.updates.map(u => u.text);
-        const uniqueUpdates = newUpdates.filter(update => !existingTexts.includes(update.text));
-        
-        if (uniqueUpdates.length > 0) {
-            match.updates.push(...uniqueUpdates);
-            await match.save();
-            
-            return res.status(200).json({
-                success: true,
-                message: `Added ${uniqueUpdates.length} new updates`,
-                data: { match, updates: match.updates }
-            });
-        } else {
-            return res.status(200).json({
-                success: true,
-                message: 'No new unique updates found',
-                data: { match, updates: match.updates }
-            });
-        }
-    } catch (error) {
-        console.error('Error fetching web updates:', error);
-        return res.status(500).json({
-            success: false,
-            error: 'Server error while fetching updates'
         });
     }
 }; 

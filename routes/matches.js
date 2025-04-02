@@ -14,8 +14,7 @@ const {
   addCommentary,
   deleteMatch,
   addUpdate,
-  removeUpdate,
-  fetchWebUpdates
+  removeUpdate
 } = require('../controllers/matchController');
 const { protect, authorize } = require('../middleware/auth');
 
@@ -38,8 +37,5 @@ router.delete('/:id', protect, authorize('admin'), deleteMatch);
 // New routes for match updates
 router.post('/:id/update', protect, authorize('admin'), addUpdate);
 router.delete('/:id/update/:updateId', protect, authorize('admin'), removeUpdate);
-
-// New route for fetching updates from web
-router.get('/:id/web-updates', fetchWebUpdates);
 
 module.exports = router; 
