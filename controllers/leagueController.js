@@ -142,16 +142,22 @@ exports.getTeamNews = async (req, res) => {
 // View controller for leagues page
 exports.getLeaguesPage = async (req, res) => {
   try {
+    console.log('Fetching leagues for page display...');
+    
     // Get featured leagues for each category
     const categories = ['Cricket', 'Football', 'Basketball', 'Volleyball', 'Other'];
     const featuredLeagues = {};
     
     for (const category of categories) {
+      // Modified to fetch all leagues, not just 'ongoing' ones
       featuredLeagues[category] = await League.find({ 
-        category,
-        status: 'ongoing'
-      }).sort({ featured: -1 }).limit(2);
+        category
+      }).sort({ featured: -1 }).limit(5);
+      
+      console.log(`Found ${featuredLeagues[category].length} ${category} leagues`);
     }
+    
+    console.log('All categories fetched, rendering leagues page');
     
     res.render('leagues', {
       title: 'Nepali Leagues',
@@ -277,5 +283,188 @@ exports.getTeamDetailsPage = async (req, res) => {
       message: 'Failed to load team details',
       error: process.env.NODE_ENV === 'development' ? error : {}
     });
+  }
+};
+
+// Check if leagues exist and populate with sample data if not
+exports.checkAndPopulateLeagues = async () => {
+  try {
+    // Check if leagues already exist
+    const leagueCount = await League.countDocuments();
+    
+    if (leagueCount === 0) {
+      console.log('No leagues found in database. Adding sample leagues...');
+      
+      // Sample league data
+      const sampleLeagues = [
+        {
+          name: 'Nepal Premier League',
+          category: 'Football',
+          season: new Date().getFullYear().toString(),
+          startDate: new Date(),
+          endDate: new Date(new Date().setMonth(new Date().getMonth() + 3)),
+          status: 'ongoing',
+          featured: true,
+          description: 'Top football league in Nepal',
+          teams: [
+            {
+              name: 'Kathmandu FC',
+              logo: '/images/default-team-logo.png',
+              location: 'Kathmandu',
+              played: 12,
+              won: 8,
+              drawn: 2,
+              lost: 2,
+              goalsFor: 22,
+              goalsAgainst: 10,
+              points: 26
+            },
+            {
+              name: 'Pokhara United',
+              logo: '/images/default-team-logo.png',
+              location: 'Pokhara',
+              played: 12,
+              won: 7,
+              drawn: 3,
+              lost: 2,
+              goalsFor: 18,
+              goalsAgainst: 9,
+              points: 24
+            },
+            {
+              name: 'Lalitpur City',
+              logo: '/images/default-team-logo.png',
+              location: 'Lalitpur',
+              played: 12,
+              won: 6,
+              drawn: 3,
+              lost: 3,
+              goalsFor: 15,
+              goalsAgainst: 12,
+              points: 21
+            },
+            {
+              name: 'Chitwan Tigers',
+              logo: '/images/default-team-logo.png',
+              location: 'Chitwan',
+              played: 12,
+              won: 5,
+              drawn: 2,
+              lost: 5,
+              goalsFor: 14,
+              goalsAgainst: 16,
+              points: 17
+            }
+          ]
+        },
+        {
+          name: 'Nepal Cricket League',
+          category: 'Cricket',
+          season: new Date().getFullYear().toString(),
+          startDate: new Date(),
+          endDate: new Date(new Date().setMonth(new Date().getMonth() + 3)),
+          status: 'ongoing',
+          featured: true,
+          description: 'Premier cricket competition in Nepal',
+          teams: [
+            {
+              name: 'Kathmandu Kings',
+              logo: '/images/default-team-logo.png',
+              location: 'Kathmandu',
+              played: 10,
+              won: 7,
+              drawn: 1,
+              lost: 2,
+              goalsFor: 0,
+              goalsAgainst: 0,
+              points: 15
+            },
+            {
+              name: 'Pokhara Rhinos',
+              logo: '/images/default-team-logo.png',
+              location: 'Pokhara',
+              played: 10,
+              won: 6,
+              drawn: 0,
+              lost: 4,
+              goalsFor: 0,
+              goalsAgainst: 0,
+              points: 12
+            },
+            {
+              name: 'Bhairahawa Gladiators',
+              logo: '/images/default-team-logo.png',
+              location: 'Bhairahawa',
+              played: 10,
+              won: 5,
+              drawn: 0,
+              lost: 5,
+              goalsFor: 0,
+              goalsAgainst: 0,
+              points: 10
+            }
+          ]
+        },
+        {
+          name: 'Nepal Basketball Association League',
+          category: 'Basketball',
+          season: new Date().getFullYear().toString(),
+          startDate: new Date(),
+          endDate: new Date(new Date().setMonth(new Date().getMonth() + 2)),
+          status: 'ongoing',
+          featured: true,
+          description: 'Top basketball league in Nepal',
+          teams: [
+            {
+              name: 'Kathmandu Bulls',
+              logo: '/images/default-team-logo.png',
+              location: 'Kathmandu',
+              played: 8,
+              won: 6,
+              drawn: 0,
+              lost: 2,
+              goalsFor: 0,
+              goalsAgainst: 0,
+              points: 12
+            },
+            {
+              name: 'Patan Warriors',
+              logo: '/images/default-team-logo.png',
+              location: 'Patan',
+              played: 8,
+              won: 5,
+              drawn: 0,
+              lost: 3,
+              goalsFor: 0,
+              goalsAgainst: 0,
+              points: 10
+            },
+            {
+              name: 'Butwal Riders',
+              logo: '/images/default-team-logo.png',
+              location: 'Butwal',
+              played: 8,
+              won: 3,
+              drawn: 0,
+              lost: 5,
+              goalsFor: 0,
+              goalsAgainst: 0,
+              points: 6
+            }
+          ]
+        }
+      ];
+      
+      // Insert sample leagues
+      await League.insertMany(sampleLeagues);
+      console.log(`Added ${sampleLeagues.length} sample leagues to database`);
+      return true;
+    } else {
+      console.log(`Database already has ${leagueCount} leagues.`);
+      return false;
+    }
+  } catch (error) {
+    console.error('Error checking/populating leagues:', error);
+    return false;
   }
 }; 

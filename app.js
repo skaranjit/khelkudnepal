@@ -211,6 +211,10 @@ async function connectToDatabase() {
     const newsController = require('./controllers/newsController');
     await newsController.checkAndPopulateNews();
     
+    // Initialize leagues data if empty
+    const leagueController = require('./controllers/leagueController');
+    await leagueController.checkAndPopulateLeagues();
+    
     return true;
   } catch (atlasError) {
     console.error('MongoDB Atlas connection error:', atlasError.message);

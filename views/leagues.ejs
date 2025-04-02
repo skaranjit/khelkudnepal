@@ -106,6 +106,9 @@
                                 <h3 class="mt-4 mb-3"><%= category %> Leagues</h3>
                                 <div class="row">
                                     <% featuredLeagues[category].forEach(league => { %>
+                                        <!-- Debug info -->
+                                        <% console.log(`Rendering league: ${league.name}, Category: ${category}, Teams: ${league.teams ? league.teams.length : 0}`) %>
+                                        
                                         <div class="col-md-6 mb-4">
                                             <div class="card league-card <%= category.toLowerCase() %>">
                                                 <div class="card-body">
@@ -115,7 +118,7 @@
                                                             <h4 class="card-title mb-1"><%= league.name %></h4>
                                                             <p class="card-text text-muted mb-1"><%= league.season %></p>
                                                             <span class="badge bg-<%= league.status === 'ongoing' ? 'success' : (league.status === 'upcoming' ? 'primary' : 'secondary') %> status-badge">
-                                                                <%= league.status.charAt(0).toUpperCase() + league.status.slice(1) %>
+                                                                <%= league.status ? (league.status.charAt(0).toUpperCase() + league.status.slice(1)) : 'Unknown' %>
                                                             </span>
                                                         </div>
                                                     </div>
@@ -143,6 +146,12 @@
                                             </div>
                                         </div>
                                     <% }); %>
+                                </div>
+                            <% } else { %>
+                                <!-- Display info for empty categories -->
+                                <h3 class="mt-4 mb-3"><%= category %> Leagues</h3>
+                                <div class="alert alert-info">
+                                    <i class="bi bi-info-circle"></i> No active <%= category.toLowerCase() %> leagues available at the moment.
                                 </div>
                             <% } %>
                         <% }); %>
