@@ -122,7 +122,19 @@ router.get('/categories', async (req, res) => {
 // Show a single news article
 router.get('/news/:id', async (req, res) => {
   try {
-    const news = await News.findById(req.params.id);
+    const id = req.params.id;
+    
+    // Check if the ID is a valid MongoDB ObjectId (24 hex characters)
+    if (!id.match(/^[0-9a-fA-F]{24}$/)) {
+      return res.render('error', {
+        title: 'Invalid Article ID',
+        message: 'The provided article ID is not valid.',
+        status: 400,
+        user: req.session.user
+      });
+    }
+    
+    const news = await News.findById(id);
     
     if (!news) {
       return res.render('error', {
@@ -131,6 +143,12 @@ router.get('/news/:id', async (req, res) => {
         status: 404,
         user: req.session.user
       });
+    }
+    
+    // Fix category if it's using an invalid enum value
+    if (news.category === 'Other_sports') {
+      news.category = 'Other';
+      await news.save();
     }
     
     // Increment view count
@@ -143,9 +161,20 @@ router.get('/news/:id', async (req, res) => {
       news.content = news.content.replace(/\n{3,}/g, '\n\n');
     }
     
+    // Get news counts by category for the Popular Categories section
+    const categories = ['Cricket', 'Football', 'Basketball', 'Volleyball', 'Other_sports'];
+    const categoryCounts = {};
+    
+    for (const category of categories) {
+      // Use case-insensitive regex to match both capitalized and lowercase categories
+      const regex = new RegExp(`^${category}$`, 'i');
+      categoryCounts[category] = await News.countDocuments({ category: regex });
+    }
+    
     res.render('news/show', {
       title: news.title,
       news,
+      categoryCounts,
       user: req.session.user
     });
   } catch (error) {

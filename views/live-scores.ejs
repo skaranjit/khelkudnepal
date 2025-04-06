@@ -174,7 +174,7 @@
                 <button class="nav-link" id="volleyball-tab" data-bs-toggle="tab" data-bs-target="#volleyball" type="button" role="tab" aria-controls="volleyball" aria-selected="false">Volleyball</button>
             </li>
             <li class="nav-item" role="presentation">
-                <button class="nav-link" id="other-tab" data-bs-toggle="tab" data-bs-target="#other" type="button" role="tab" aria-controls="other" aria-selected="false">Other</button>
+                <button class="nav-link" id="othersports-tab" data-bs-toggle="tab" data-bs-target="#othersports" type="button" role="tab" aria-controls="othersports" aria-selected="false">Other</button>
             </li>
         </ul>
         
@@ -401,7 +401,7 @@
             </div>
             
             <!-- Other Sports Tab -->
-            <div class="tab-pane fade" id="other" role="tabpanel" aria-labelledby="other-tab">
+            <div class="tab-pane fade" id="othersports" role="tabpanel" aria-labelledby="othersports-tab">
                 <div class="row">
                     <div class="col-lg-12">
                         <div class="d-flex justify-content-between align-items-center mb-3">
@@ -510,7 +510,7 @@
             console.log(`Fetching live matches for category: ${category}`);
             const url = category === 'all' 
                 ? '/api/matches/live' 
-                : `/api/matches/live?category=${capitalize(category)}`;
+                : `/api/matches/live?category=${category}`;
             
             console.log(`Requesting URL: ${url}`);    
             fetch(url)
@@ -561,7 +561,7 @@
             
             const url = category === 'all' 
                 ? '/api/matches/upcoming?limit=5' 
-                : `/api/matches/upcoming?category=${capitalize(category)}&limit=5`;
+                : `/api/matches/upcoming?category=${category}&limit=5`;
                 
             fetch(url)
                 .then(response => response.json())
@@ -604,7 +604,7 @@
             
             const url = category === 'all' 
                 ? '/api/matches/completed?limit=5' 
-                : `/api/matches/completed?category=${capitalize(category)}&limit=5`;
+                : `/api/matches/completed?category=${category}&limit=5`;
                 
             fetch(url)
                 .then(response => response.json())
@@ -656,15 +656,97 @@
             const formattedDate = matchTime.toLocaleDateString('en-US', { weekday: 'short', month: 'short', day: 'numeric' });
             const formattedTime = matchTime.toLocaleTimeString('en-US', { hour: 'numeric', minute: '2-digit', hour12: true });
             
+            // Safely extract team names from either string or object format
+            const getTeamName = (team) => {
+                if (!team) return 'Unknown Team';
+                if (typeof team === 'string') return team;
+                if (typeof team === 'object' && team !== null) {
+                    if (team.name) return team.name;
+                    // If object is stringified, try to parse it
+                    if (typeof team.toString === 'function') {
+                        const teamStr = team.toString();
+                        const nameMatch = teamStr.match(/name:'?\s*([^,'"}]+)/i);
+                        if (nameMatch && nameMatch[1]) return nameMatch[1].trim();
+                    }
+                }
+                return 'Unknown Team';
+            };
+            
+            const homeTeamName = getTeamName(match.homeTeam);
+            const awayTeamName = getTeamName(match.awayTeam);
+            
+            // Handle score display based on match category and format
+            let scoreDisplay = '';
+            const category = match.category?.toLowerCase();
+            
+            if (category === 'cricket' && match.score) {
+                // Cricket-specific score display
+                scoreDisplay = `
+                    <div class="d-flex align-items-center">
+                        <span class="team-name">${homeTeamName}</span>
+                        <div class="ms-2">
+                            <span class="score-display">${match.score.home_detail || match.homeScore || match.score.home}</span>
+                            <small class="text-muted d-block">${match.score.home_overs ? `(${match.score.home_overs})` : ''}</small>
+                        </div>
+                    </div>
+                    <span class="vs mx-2">vs</span>
+                    <div class="d-flex align-items-center">
+                        <span class="team-name">${awayTeamName}</span>
+                        <div class="ms-2">
+                            <span class="score-display">${match.score.away_detail || match.awayScore || match.score.away}</span>
+                            <small class="text-muted d-block">${match.score.away_overs ? `(${match.score.away_overs})` : ''}</small>
+                        </div>
+                    </div>
+                `;
+            } else if (category === 'basketball' && match.quarters && match.quarters.length > 0) {
+                // Basketball score display with quarters
+                scoreDisplay = `
+                    <div class="d-flex align-items-center">
+                        <span class="team-name">${homeTeamName}</span>
+                        <span class="score-display mx-2">${match.homeScore || match.score.home }</span>
+                    </div>
+                    <span class="vs mx-2">vs</span>
+                    <div class="d-flex align-items-center">
+                        <span class="team-name">${awayTeamName}</span>
+                        <span class="score-display mx-2">${match.awayScore || match.score.away}</span>
+                    </div>
+                `;
+            } else if (category === 'volleyball' && match.sets && match.sets.length > 0) {
+                // Volleyball score display with sets
+                const homeSets = match.sets.filter(set => set.homeScore > set.awayScore).length;
+                const awaySets = match.sets.filter(set => set.awayScore > set.homeScore).length;
+                
+                scoreDisplay = `
+                    <div class="d-flex align-items-center">
+                        <span class="team-name">${homeTeamName}</span>
+                        <span class="score-display mx-2">${homeSets}</span>
+                    </div>
+                    <span class="vs mx-2">vs</span>
+                    <div class="d-flex align-items-center">
+                        <span class="team-name">${awayTeamName}</span>
+                        <span class="score-display mx-2">${awaySets}</span>
+                    </div>
+                `;
+            } else {
+                // Default score display for other sports
+                scoreDisplay = `
+                    <div class="d-flex align-items-center">
+                        <span class="team-name">${homeTeamName}</span>
+                        <span class="score-display mx-2">${match.homeScore || (match.score && match.score.home) || 0}</span>
+                        <span class="vs">vs</span>
+                        <span class="score-display mx-2">${match.awayScore || (match.score && match.score.away) || 0}</span>
+                        <span class="team-name">${awayTeamName}</span>
+                    </div>
+                `;
+            }
+            
             card.innerHTML = `
                 <div class="card-body">
                     <div class="row align-items-center">
                         <div class="col-md-8">
-                            <p class="card-text mb-1 tournament-name">${match.tournament || ''}</p>
+                            <p class="card-text mb-1 tournament-name" data-category="${match.category || ''}">${match.tournament || ''}</p>
                             <div class="d-flex align-items-center mb-2">
-                                <span class="team-name">${match.homeTeam}</span>
-                                <span class="score-display mx-2">${match.homeScore} - ${match.awayScore}</span>
-                                <span class="team-name">${match.awayTeam}</span>
+                                ${scoreDisplay}
                             </div>
                             <p class="match-venue mb-1">
                                 ${match.venue && match.venue.name ? match.venue.name : ''}
@@ -682,7 +764,7 @@
                     <div class="match-details mt-3" style="display: none;">
                         <hr>
                         <div class="match-summary">
-                            ${getCategorySpecificDetails(match)}
+                            ${getCategorySpecificDetails(match, homeTeamName, awayTeamName)}
                         </div>
                         <div class="latest-updates mt-3">
                             <h6 class="latest-updates-title d-flex justify-content-between align-items-center">
@@ -725,23 +807,164 @@
             return card;
         }
         
-        function getCategorySpecificDetails(match) {
+        function getCategorySpecificDetails(match, homeTeamName, awayTeamName) {
             // Create HTML for sport-specific match details
-            switch (match.category) {
-                case 'Cricket':
-                    return getCricketDetails(match);
-                case 'Football':
-                    return getFootballDetails(match);
-                case 'Basketball':
-                    return getBasketballDetails(match);
-                case 'Volleyball':
-                    return getVolleyballDetails(match);
+            const category = match.category?.toLowerCase();
+            
+            switch (category) {
+                case 'cricket':
+                    return getCricketDetails(match, homeTeamName, awayTeamName);
+                case 'football':
+                    return getFootballDetails(match, homeTeamName, awayTeamName);
+                case 'basketball':
+                    return getBasketballDetails(match, homeTeamName, awayTeamName);
+                case 'volleyball':
+                    return getVolleyballDetails(match, homeTeamName, awayTeamName);
                 default:
-                    return getDefaultDetails(match);
+                    return getDefaultDetails(match, homeTeamName, awayTeamName);
             }
         }
         
-        function getCricketDetails(match) {
+        function getCricketDetails(match, homeTeamName, awayTeamName) {
+            // Check if using new stats structure
+            if (match.stats && match.stats.home) {
+                // Get data from stats, supporting both old and new structures
+                const homeRuns = match.stats.home.runs || match.stats.home.runsScored  || match.score.home || 0;
+                const homeWickets = match.stats.home.wickets || 0;
+                const homeOvers = match.stats.home.overs || '0.0';
+                const homeRunRate = match.stats.home.runRate || 0;
+                const homeExtras = match.stats.home.extras || 0;
+                const homeFours = match.stats.home.fours || (match.stats.home.boundaries && match.stats.home.boundaries.fours) || 0;
+                const homeSixes = match.stats.home.sixes || (match.stats.home.boundaries && match.stats.home.boundaries.sixes) || 0;
+                
+                const awayRuns = match.stats.away.runs || match.stats.away.runsScored || match.score.away || 0;
+                const awayWickets = match.stats.away.wickets || 0;
+                const awayOvers = match.stats.away.overs || '0.0';
+                const awayRunRate = match.stats.away.runRate || 0;
+                const awayExtras = match.stats.away.extras || 0;
+                const awayFours = match.stats.away.fours || (match.stats.away.boundaries && match.stats.away.boundaries.fours) || 0;
+                const awaySixes = match.stats.away.sixes || (match.stats.away.boundaries && match.stats.away.boundaries.sixes) || 0;
+
+                let html = `<h6>Match Summary</h6><div class="table-responsive"><table class="table table-sm">
+                    <thead>
+                        <tr>
+                            <th>Team</th>
+                            <th>Runs</th>
+                            <th>Wickets</th>
+                            <th>Overs</th>
+                            <th>Run Rate</th>
+                            <th>4s</th>
+                            <th>6s</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        <tr>
+                            <td>${homeTeamName}</td>
+                            <td><strong>${homeRuns}</strong></td>
+                            <td>${homeWickets}</td>
+                            <td>${homeOvers}</td>
+                            <td>${homeRunRate}</td>
+                            <td>${homeFours}</td>
+                            <td>${homeSixes}</td>
+                        </tr>
+                        <tr>
+                            <td>${awayTeamName}</td>
+                            <td><strong>${awayRuns}</strong></td>
+                            <td>${awayWickets}</td>
+                            <td>${awayOvers}</td>
+                            <td>${awayRunRate}</td>
+                            <td>${awayFours}</td>
+                            <td>${awaySixes}</td>
+                        </tr>
+                    </tbody>
+                </table></div>`;
+                
+                // Add top performers if available
+                if (match.stats.home.topScorer || match.stats.away.topScorer || match.stats.home.topBowler || match.stats.away.topBowler) {
+                    html += `<h6 class="mt-3">Top Performers</h6><div class="row">`;
+                    
+                    // Top scorers
+                    if (match.stats.home.topScorer || match.stats.away.topScorer) {
+                        html += `<div class="col-md-6"><h6 class="text-muted">Top Scorers</h6><ul class="list-group">`;
+                        
+                        if (match.stats.home.topScorer) {
+                            html += `<li class="list-group-item d-flex justify-content-between">
+                                <span>${homeTeamName}</span>
+                                <span>${match.stats.home.topScorer.name} <strong>${match.stats.home.topScorer.runs}</strong></span>
+                            </li>`;
+                        }
+                        
+                        if (match.stats.away.topScorer) {
+                            html += `<li class="list-group-item d-flex justify-content-between">
+                                <span>${awayTeamName}</span>
+                                <span>${match.stats.away.topScorer.name} <strong>${match.stats.away.topScorer.runs}</strong></span>
+                            </li>`;
+                        }
+                        
+                        html += `</ul></div>`;
+                    }
+                    
+                    // Top bowlers
+                    if (match.stats.home.topBowler || match.stats.away.topBowler) {
+                        html += `<div class="col-md-6"><h6 class="text-muted">Top Bowlers</h6><ul class="list-group">`;
+                        
+                        if (match.stats.home.topBowler) {
+                            html += `<li class="list-group-item d-flex justify-content-between">
+                                <span>${homeTeamName}</span>
+                                <span>${match.stats.home.topBowler.name} <strong>${match.stats.home.topBowler.wickets}/${match.stats.home.topBowler.runsConceded}</strong></span>
+                            </li>`;
+                        }
+                        
+                        if (match.stats.away.topBowler) {
+                            html += `<li class="list-group-item d-flex justify-content-between">
+                                <span>${awayTeamName}</span>
+                                <span>${match.stats.away.topBowler.name} <strong>${match.stats.away.topBowler.wickets}/${match.stats.away.topBowler.runsConceded}</strong></span>
+                            </li>`;
+                        }
+                        
+                        html += `</ul></div>`;
+                    }
+                    
+                    html += `</div>`;
+                }
+                
+                // Add format information if available
+                if (match.format) {
+                    html += `<p class="text-muted">Format: ${match.format}, ${match.overs} overs</p>`;
+                }
+                
+                // Add target information if in second innings
+                if (match.status === 'live' && match.stats.away.runs > 0) {
+                    const targetRuns = match.stats.home.runs + 1;
+                    const remainingRuns = targetRuns - match.stats.away.runs;
+                    
+                    // Parse overs to calculate remaining
+                    if (match.overs && match.stats.away.overs) {
+                        const maxOvers = match.overs; 
+                        const completedOversStr = match.stats.away.overs;
+                        
+                        // Parse over string like "39.4"
+                        const parts = completedOversStr.toString().split('.');
+                        const completedFullOvers = parseInt(parts[0]);
+                        const partialOverBalls = parts.length > 1 ? parseInt(parts[1]) : 0;
+                        
+                        const totalRemainingBalls = (maxOvers - completedFullOvers) * 6 - partialOverBalls;
+                        const remainingFullOvers = Math.floor(totalRemainingBalls / 6);
+                        const remainingBalls = totalRemainingBalls % 6;
+                        
+                        html += `
+                            <div class="current-status mt-3 alert alert-info">
+                                <p class="mb-0"><strong>${awayTeamName}</strong> needs <strong>${remainingRuns}</strong>
+                                runs from <strong>${remainingFullOvers}.${remainingBalls}</strong> overs to win.</p>
+                            </div>
+                        `;
+                    }
+                }
+                
+                return html;
+            }
+            
+            // Legacy format (keeping for backward compatibility)
             if (!match.innings || match.innings.length === 0) {
                 return `<p class="text-muted">Detailed statistics not available for this match.</p>`;
             }
@@ -795,132 +1018,245 @@
             return html;
         }
         
-        function getFootballDetails(match) {
-            if (!match.goals || match.goals.length === 0) {
-                return `<p class="text-muted">Detailed statistics not available for this match.</p>`;
-            }
+        function getFootballDetails(match, homeTeamName, awayTeamName) {
+            // Enhanced stats display for football matches
+            let html = '';
             
-            let html = `<h6>Goals</h6><ul class="list-group">`;
-            
-            match.goals.forEach(goal => {
-                const teamLabel = goal.team === 'home' ? match.homeTeam : match.awayTeam;
-                html += `
-                    <li class="list-group-item">
-                        <i class="bi bi-trophy-fill text-warning me-2"></i>
-                        <strong>${goal.minute}'</strong> - ${goal.player} (${teamLabel})
-                    </li>
-                `;
-            });
-            
-            html += `</ul>`;
-            
-            // Add possession, shots, corners stats if available
-            if (match.stats) {
-                html += `
-                    <h6 class="mt-3">Match Stats</h6>
-                    <div class="row text-center stats-row">
-                        <div class="col-4">
-                            <div class="stat-label">Possession</div>
-                            <div class="stat-value">${match.stats.homePossession || '0'}% - ${match.stats.awayPossession || '0'}%</div>
-                        </div>
-                        <div class="col-4">
-                            <div class="stat-label">Shots</div>
-                            <div class="stat-value">${match.stats.homeShots || '0'} - ${match.stats.awayShots || '0'}</div>
-                        </div>
-                        <div class="col-4">
-                            <div class="stat-label">Corners</div>
-                            <div class="stat-value">${match.stats.homeCorners || '0'} - ${match.stats.awayCorners || '0'}</div>
-                        </div>
-                    </div>
-                `;
-            }
-            
-            return html;
-        }
-        
-        function getBasketballDetails(match) {
-            if (!match.quarters || match.quarters.length === 0) {
-                return `<p class="text-muted">Detailed statistics not available for this match.</p>`;
-            }
-            
-            let html = `<h6>Quarter Scores</h6><div class="table-responsive"><table class="table table-sm">
-                <thead>
-                    <tr>
-                        <th>Quarter</th>
-                        <th>${match.homeTeam}</th>
-                        <th>${match.awayTeam}</th>
-                    </tr>
-                </thead>
-                <tbody>`;
-                
-            match.quarters.forEach(quarter => {
-                html += `
-                    <tr>
-                        <td>Q${quarter.quarter}</td>
-                        <td>${quarter.homeScore}</td>
-                        <td>${quarter.awayScore}</td>
-                    </tr>
-                `;
-            });
-            
-            // Add total row
+            // Show score first
             html += `
-                <tr class="table-active">
-                    <td><strong>Total</strong></td>
-                    <td><strong>${match.homeScore}</strong></td>
-                    <td><strong>${match.awayScore}</strong></td>
-                </tr>
-            `;
-            
-            html += `</tbody></table></div>`;
-            
-            return html;
-        }
-        
-        function getVolleyballDetails(match) {
-            // For volleyball, show sets if available
-            if (!match.sets || match.sets.length === 0) {
-                return `<p class="text-muted">Detailed statistics not available for this match.</p>`;
-            }
-            
-            let html = `<h6>Set Scores</h6><div class="table-responsive"><table class="table table-sm">
-                <thead>
-                    <tr>
-                        <th>Set</th>
-                        <th>${match.homeTeam}</th>
-                        <th>${match.awayTeam}</th>
-                    </tr>
-                </thead>
-                <tbody>`;
-                
-            match.sets.forEach((set, index) => {
-                html += `
-                    <tr>
-                        <td>Set ${index + 1}</td>
-                        <td>${set.homeScore}</td>
-                        <td>${set.awayScore}</td>
-                    </tr>
-                `;
-            });
-            
-            html += `</tbody></table></div>`;
-            
-            return html;
-        }
-        
-        function getDefaultDetails(match) {
-            return `
-                <div class="row">
-                    <div class="col-md-6">
-                        <h6>${match.homeTeam}</h6>
-                        <div class="score-big">${match.homeScore}</div>
+                <div class="row text-center mb-4">
+                    <div class="col-5">
+                        <h5>${homeTeamName}</h5>
+                        <div class="score-big">${match.homeScore || (match.score && match.score.home) || 0}</div>
                     </div>
-                    <div class="col-md-6">
-                        <h6>${match.awayTeam}</h6>
-                        <div class="score-big">${match.awayScore}</div>
+                    <div class="col-2 d-flex align-items-center justify-content-center">
+                        <span class="vs">VS</span>
+                    </div>
+                    <div class="col-5">
+                        <h5>${awayTeamName}</h5>
+                        <div class="score-big">${match.awayScore || (match.score && match.score.away) || 0}</div>
                     </div>
                 </div>
             `;
+            
+            // Goals section
+            if (match.goals && match.goals.length > 0) {
+                html += `<h6>Goals</h6><ul class="list-group">`;
+                
+                match.goals.forEach(goal => {
+                    const teamLabel = goal.team === 'home' ? homeTeamName : awayTeamName;
+                    html += `
+                        <li class="list-group-item">
+                            <i class="bi bi-trophy-fill text-warning me-2"></i>
+                            <strong>${goal.minute}'</strong> - ${goal.player} (${teamLabel})
+                        </li>
+                    `;
+                });
+                
+                html += `</ul>`;
+            }
+            
+            // Match stats section - support both flat and nested structure
+            if (match.stats) {
+                // Get stat values from either flat or nested structure
+                const homePossession = match.stats.homePossession || (match.stats.home && match.stats.home.possession) || 0;
+                const awayPossession = match.stats.awayPossession || (match.stats.away && match.stats.away.possession) || 0;
+                const homeShots = match.stats.homeShots || (match.stats.home && match.stats.home.shotsTotal) || 0;
+                const awayShots = match.stats.awayShots || (match.stats.away && match.stats.away.shotsTotal) || 0;
+                const homeCorners = match.stats.homeCorners || (match.stats.home && match.stats.home.corners) || 0;
+                const awayCorners = match.stats.awayCorners || (match.stats.away && match.stats.away.corners) || 0;
+                const homeYellowCards = match.stats.homeYellowCards || (match.stats.home && match.stats.home.yellowCards) || 0;
+                const awayYellowCards = match.stats.awayYellowCards || (match.stats.away && match.stats.away.yellowCards) || 0;
+                const homeRedCards = match.stats.homeRedCards || (match.stats.home && match.stats.home.redCards) || 0;
+                const awayRedCards = match.stats.awayRedCards || (match.stats.away && match.stats.away.redCards) || 0;
+                
+                html += `
+                    <h6 class="mt-3">Match Stats</h6>
+                    <div class="row text-center stats-row g-3">
+                        <div class="col-4">
+                            <div class="card">
+                                <div class="card-body p-2">
+                                    <div class="stat-label">Possession</div>
+                                    <div class="stat-value">${homePossession}% - ${awayPossession}%</div>
+                                </div>
+                            </div>
+                        </div>
+                        <div class="col-4">
+                            <div class="card">
+                                <div class="card-body p-2">
+                                    <div class="stat-label">Shots</div>
+                                    <div class="stat-value">${homeShots} - ${awayShots}</div>
+                                </div>
+                            </div>
+                        </div>
+                        <div class="col-4">
+                            <div class="card">
+                                <div class="card-body p-2">
+                                    <div class="stat-label">Corners</div>
+                                    <div class="stat-value">${homeCorners} - ${awayCorners}</div>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                    <div class="row text-center stats-row g-3 mt-1">
+                        <div class="col-6">
+                            <div class="card">
+                                <div class="card-body p-2">
+                                    <div class="stat-label">Yellow Cards</div>
+                                    <div class="stat-value">${homeYellowCards} - ${awayYellowCards}</div>
+                                </div>
+                            </div>
+                        </div>
+                        <div class="col-6">
+                            <div class="card">
+                                <div class="card-body p-2">
+                                    <div class="stat-label">Red Cards</div>
+                                    <div class="stat-value">${homeRedCards} - ${awayRedCards}</div>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                `;
+            }
+            
+            if (!match.goals?.length && !match.stats) {
+                html = `<p class="text-muted">Detailed statistics not available for this match.</p>`;
+            }
+            
+            return html;
+        }
+        
+        function getBasketballDetails(match, homeTeamName, awayTeamName) {
+            // Enhanced display for basketball matches
+            let html = `
+                <div class="row text-center mb-4">
+                    <div class="col-5">
+                        <h5>${homeTeamName}</h5>
+                        <div class="score-big">${match.homeScore || match.score.home}</div>
+                    </div>
+                    <div class="col-2 d-flex align-items-center justify-content-center">
+                        <span class="vs">VS</span>
+                    </div>
+                    <div class="col-5">
+                        <h5>${awayTeamName}</h5>
+                        <div class="score-big">${match.awayScore || match.score.away}</div>
+                    </div>
+                </div>
+            `;
+            
+            // Display quarter scores if available
+            if (match.quarters && match.quarters.length > 0) {
+                html += `<h6>Quarter Scores</h6>
+                <div class="table-responsive">
+                    <table class="table table-sm">
+                        <thead>
+                            <tr>
+                                <th>Team</th>
+                                ${match.quarters.map((q, i) => `<th>Q${i+1}</th>`).join('')}
+                                <th>Total</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            <tr>
+                                <td>${homeTeamName}</td>
+                                ${match.quarters.map(q => `<td>${q.homeScore}</td>`).join('')}
+                                <td><strong>${match.homeScore || match.score.home}</strong></td>
+                            </tr>
+                            <tr>
+                                <td>${awayTeamName}</td>
+                                ${match.quarters.map(q => `<td>${q.awayScore}</td>`).join('')}
+                                <td><strong>${match.awayScore || match.score.away}</strong></td>
+                            </tr>
+                        </tbody>
+                    </table>
+                </div>`;
+            } else {
+                html += `<p class="text-muted">Detailed statistics not available for this match.</p>`;
+            }
+            
+            return html;
+        }
+        
+        function getVolleyballDetails(match, homeTeamName, awayTeamName) {
+            // Calculate sets won
+            let homeSets = 0;
+            let awaySets = 0;
+            
+            if (match.sets && match.sets.length > 0) {
+                homeSets = match.sets.filter(set => set.homeScore > set.awayScore).length;
+                awaySets = match.sets.filter(set => set.awayScore > set.homeScore).length;
+            }
+            
+            // Enhanced display for volleyball matches
+            let html = `
+                <div class="row text-center mb-4">
+                    <div class="col-5">
+                        <h5>${homeTeamName}</h5>
+                        <div class="score-big">${homeSets}</div>
+                    </div>
+                    <div class="col-2 d-flex align-items-center justify-content-center">
+                        <span class="vs">VS</span>
+                    </div>
+                    <div class="col-5">
+                        <h5>${awayTeamName}</h5>
+                        <div class="score-big">${awaySets}</div>
+                    </div>
+                </div>
+            `;
+            
+            // Display set scores if available
+            if (match.sets && match.sets.length > 0) {
+                html += `<h6>Set Scores</h6>
+                <div class="table-responsive">
+                    <table class="table table-sm">
+                        <thead>
+                            <tr>
+                                <th>Team</th>
+                                ${match.sets.map((s, i) => `<th>Set ${i+1}</th>`).join('')}
+                                <th>Sets Won</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            <tr>
+                                <td>${homeTeamName}</td>
+                                ${match.sets.map(set => `<td>${set.homeScore}</td>`).join('')}
+                                <td><strong>${homeSets}</strong></td>
+                            </tr>
+                            <tr>
+                                <td>${awayTeamName}</td>
+                                ${match.sets.map(set => `<td>${set.awayScore}</td>`).join('')}
+                                <td><strong>${awaySets}</strong></td>
+                            </tr>
+                        </tbody>
+                    </table>
+                </div>`;
+            } else {
+                html += `<p class="text-muted">Detailed statistics not available for this match.</p>`;
+            }
+            
+            return html;
+        }
+        
+        function getDefaultDetails(match, homeTeamName, awayTeamName) {
+            // Display for other sports or when detailed stats aren't available
+            let html = `
+                <div class="row text-center mb-4">
+                    <div class="col-5">
+                        <h5>${homeTeamName}</h5>
+                        <div class="score-big">${match.homeScore || (match.score && match.score.home) || 0}</div>
+                    </div>
+                    <div class="col-2 d-flex align-items-center justify-content-center">
+                        <span class="vs">VS</span>
+                    </div>
+                    <div class="col-5">
+                        <h5>${awayTeamName}</h5>
+                        <div class="score-big">${match.awayScore || (match.score && match.score.away) || 0}</div>
+                    </div>
+                </div>
+                <p class="text-muted text-center">Detailed statistics not available for this match.</p>
+            `;
+            
+            return html;
         }
         
         function getMatchUpdates(match) {
@@ -970,23 +1306,36 @@
         }
         
         function fetchMatchDetails(matchId, detailsContainer) {
+            console.log('Fetching match details for ID:', matchId);
+            
             fetch(`/api/matches/${matchId}`)
-                .then(response => response.json())
+                .then(response => {
+                    console.log('Response status:', response.status);
+                    return response.json();
+                })
                 .then(data => {
+                    console.log('Match details data:', data);
+                    
                     if (data.success) {
                         const match = data.data;
                         const summarySection = detailsContainer.querySelector('.match-summary');
                         const updatesSection = detailsContainer.querySelector('.latest-updates-content');
                         
                         // Update the match summary
-                        summarySection.innerHTML = getCategorySpecificDetails(match);
+                        summarySection.innerHTML = getCategorySpecificDetails(match, match.homeTeam.name, match.awayTeam.name);
                         
                         // Update the latest updates
                         updatesSection.innerHTML = getMatchUpdates(match);
+                    } else {
+                        console.error('Error in API response:', data.error);
+                        detailsContainer.querySelector('.match-summary').innerHTML = 
+                            `<div class="alert alert-danger">Error loading match details: ${data.error}</div>`;
                     }
                 })
                 .catch(error => {
                     console.error('Error fetching match details:', error);
+                    detailsContainer.querySelector('.match-summary').innerHTML = 
+                        '<div class="alert alert-danger">Error loading match details. Please try again later.</div>';
                 });
         }
         
@@ -1123,21 +1472,104 @@
             // Function to get match data from a card
             function getMatchData(card) {
                 const matchId = card.getAttribute('data-match-id');
-                const homeTeam = card.querySelector('.team-name:first-of-type').textContent;
-                const awayTeam = card.querySelector('.team-name:last-of-type').textContent;
-                const homeScore = card.querySelector('.score-display').textContent.split('-')[0].trim();
-                const awayScore = card.querySelector('.score-display').textContent.split('-')[1].trim();
-                const status = card.classList.contains('live') ? 'live' : 
-                              card.querySelector('.match-status').textContent.toLowerCase();
                 
-                return {
+                // Extract team names properly
+                const homeTeam = card.querySelector('.team-name:first-of-type')?.textContent || 'Unknown';
+                const awayTeam = card.querySelector('.team-name:last-of-type')?.textContent || 'Unknown';
+                
+                // Extract scores - need to handle different sport formats
+                let homeScore = 0;
+                let awayScore = 0;
+                let score = null;
+                
+                // Try to find score displays
+                const scoreDisplays = card.querySelectorAll('.score-display');
+                if (scoreDisplays.length >= 2) {
+                    // Most sports have separate home and away score elements
+                    homeScore = parseInt(scoreDisplays[0].textContent.trim()) || 0;
+                    awayScore = parseInt(scoreDisplays[1].textContent.trim()) || 0;
+                    
+                    // Check if we have detailed cricket scores
+                    const homeDetail = card.querySelector('.team-name:first-of-type + div .score-display')?.textContent.trim();
+                    const awayDetail = card.querySelector('.team-name:last-of-type + div .score-display')?.textContent.trim();
+                    const homeOvers = card.querySelector('.team-name:first-of-type + div small')?.textContent.trim().replace(/[()]/g, '');
+                    const awayOvers = card.querySelector('.team-name:last-of-type + div small')?.textContent.trim().replace(/[()]/g, '');
+                    
+                    if (homeDetail || awayDetail) {
+                        score = {
+                            home_detail: homeDetail || '',
+                            away_detail: awayDetail || '',
+                            home_overs: homeOvers || '',
+                            away_overs: awayOvers || ''
+                        };
+                    }
+                } else if (scoreDisplays.length === 1) {
+                    // Some might have a single element with format "X - Y"
+                    const scoreParts = scoreDisplays[0].textContent.trim().split('-');
+                    if (scoreParts.length === 2) {
+                        homeScore = parseInt(scoreParts[0].trim()) || 0;
+                        awayScore = parseInt(scoreParts[1].trim()) || 0;
+                    } else {
+                        homeScore = parseInt(scoreDisplays[0].textContent.trim()) || 0;
+                    }
+                }
+                
+                // Get match status
+                const status = card.classList.contains('live') ? 'live' : 
+                              card.querySelector('.match-status')?.textContent.toLowerCase() || 'unknown';
+                
+                // Get match category if available
+                const category = card.querySelector('.tournament-name')?.getAttribute('data-category') || '';
+                
+                // Create base match object
+                const matchData = {
                     _id: matchId,
                     homeTeam,
                     awayTeam,
                     homeScore,
                     awayScore,
-                    status
+                    status,
+                    category
                 };
+                
+                // Add detailed score if available
+                if (score) {
+                    matchData.score = score;
+                }
+                
+                // Extract any stats if present (for cricket matches)
+                const statsTable = card.querySelector('.match-details table');
+                if (statsTable && category.toLowerCase() === 'cricket') {
+                    const rows = statsTable.querySelectorAll('tbody tr');
+                    if (rows.length >= 2) {
+                        const homeStats = rows[0].querySelectorAll('td');
+                        const awayStats = rows[1].querySelectorAll('td');
+                        
+                        if (homeStats.length >= 7 && awayStats.length >= 7) {
+                            matchData.stats = {
+                                home: {
+                                    runs: parseInt(homeStats[1].textContent) || 0,
+                                    wickets: parseInt(homeStats[2].textContent) || 0,
+                                    overs: homeStats[3].textContent.trim(),
+                                    runRate: parseFloat(homeStats[4].textContent) || 0,
+                                    fours: parseInt(homeStats[5].textContent) || 0,
+                                    sixes: parseInt(homeStats[6].textContent) || 0
+                                },
+                                away: {
+                                    runs: parseInt(awayStats[1].textContent) || 0,
+                                    wickets: parseInt(awayStats[2].textContent) || 0,
+                                    overs: awayStats[3].textContent.trim(),
+                                    runRate: parseFloat(awayStats[4].textContent) || 0,
+                                    fours: parseInt(awayStats[5].textContent) || 0,
+                                    sixes: parseInt(awayStats[6].textContent) || 0
+                                }
+                            };
+                        }
+                    }
+                }
+                
+                console.log('Extracted match data:', matchData);
+                return matchData;
             }
             
             // Show a notification message

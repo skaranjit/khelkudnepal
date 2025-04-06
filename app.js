@@ -7,6 +7,12 @@ const cors = require('cors');
 const dotenv = require('dotenv');
 const fileUpload = require('express-fileupload');
 const axios = require('axios');
+const redisClient = require('./utils/redisClient');
+const flash = require('connect-flash');
+const newsCache = require('./utils/newsCache');
+const leagueCache = require('./utils/leagueCache');
+const userCache = require('./utils/userCache');
+const matchCache = require('./utils/matchCache');
 
 // Load environment variables
 dotenv.config();
@@ -36,7 +42,6 @@ const dbName = "khelkud_nepal";
 
 // Build MongoDB Atlas connection string
 const uri = `mongodb+srv://${username}:${password}@${cluster}/${dbName}?retryWrites=true&w=majority&appName=khelkudNepal`;
-const localUri = process.env.MONGODB_URI || 'mongodb://localhost:27017/khelkud_nepal';
 
 // Set up session with MongoDB store
 app.use(session({
@@ -61,9 +66,16 @@ app.use(session({
   })
 }));
 
+// Flash messages middleware
+app.use(flash());
+
 // Global middleware to make user data available to all views
 app.use((req, res, next) => {
   res.locals.user = req.session.user || null;
+  res.locals.messages = {
+    success: req.flash('success'),
+    error: req.flash('error')
+  };
   next();
 });
 
@@ -114,6 +126,7 @@ app.use('/api/comments', commentRoutes);
 app.use('/api/settings', settingsRoutes);
 app.use('/api/matches', matchesRoutes);
 app.use('/api/leagues', leaguesRoutes);
+app.use('/leagues', leaguesRoutes); // Public leagues route
 
 // Image proxy route for handling external images (especially Google News API)
 app.get('/api/image-proxy', async (req, res) => {
@@ -143,8 +156,24 @@ app.get('/api/image-proxy', async (req, res) => {
 });
 
 // Home route
-app.get('/', (req, res) => {
-  res.render('index');
+app.get('/', async (req, res) => {
+  try {
+    // Get news counts by category
+    const News = require('./models/News');
+    const categories = ['Cricket', 'Football', 'Basketball', 'Volleyball', 'Other_sports'];
+    const categoryCounts = {};
+    
+    for (const category of categories) {
+      // Use case-insensitive regex to match both capitalized and lowercase categories
+      const regex = new RegExp(`^${category}$`, 'i');
+      categoryCounts[category] = await News.countDocuments({ category: regex });
+    }
+    
+    res.render('index', { categoryCounts });
+  } catch (error) {
+    console.error('Error fetching category counts for homepage:', error);
+    res.render('index', { categoryCounts: {} });
+  }
 });
 
 // Auth routes
@@ -190,61 +219,144 @@ app.get('/subscribe', (req, res) => {
   });
 });
 
-// MongoDB connection options
-const clientOptions = { 
-  serverApi: { 
-    version: '1', 
-    strict: true, 
-    deprecationErrors: true 
+// Set up routes
+// API Routes
+app.use('/api/news', require('./routes/news'));
+app.use('/api/leagues', require('./routes/leagues'));
+app.use('/api/auth', require('./routes/auth'));
+app.use('/api/matches', require('./routes/matches'));
+app.use('/api/admin/cache', require('./routes/admin/cacheRoutes'));
+app.use('/api/users', require('./routes/api/users'));
+
+// View Routes
+app.use('/', require('./routes/viewRoutes'));
+app.use('/auth', require('./routes/auth'));
+app.use('/admin', require('./routes/admin'));
+app.use('/user', require('./routes/user'));
+
+// Redis Connection
+const initializeRedis = async () => {
+  try {
+    await redisClient.connect();
+    console.log('Redis Connected');
+    
+    // Initialize caches
+    await newsCache.initializeCache();
+    await leagueCache.initializeCache();
+    await userCache.initializeCache();
+    await matchCache.initializeCache();
+    
+    // Setup background jobs
+    setupCronJobs();
+  } catch (err) {
+    console.error('Redis Connection Error:', err);
   }
 };
 
-// Connect to MongoDB
+// MongoDB connection function
 async function connectToDatabase() {
   try {
-    console.log('Attempting to connect to MongoDB Atlas...');
-    await mongoose.connect(uri, clientOptions);
-    await mongoose.connection.db.admin().command({ ping: 1 });
-    console.log("Pinged your deployment. You successfully connected to MongoDB Atlas!");
+    // Connect to Redis first
+    const redisConnected = await redisClient.connect().catch(err => {
+      console.warn('Failed to connect to Redis. Running without cache:', err.message);
+      return false;
+    });
     
-    // Initialize database with sample data if empty
-    const newsController = require('./controllers/newsController');
-    await newsController.checkAndPopulateNews();
+    if (redisConnected) {
+      console.log('Redis cache enabled');
+    } else {
+      console.log('Redis cache disabled, falling back to database queries');
+    }
     
-    // Initialize leagues data if empty
-    const leagueController = require('./controllers/leagueController');
-    await leagueController.checkAndPopulateLeagues();
+    // Check if MongoDB URI is defined
+    if (!uri) {
+      console.error('MongoDB URI is not defined in environment variables.');
+      return false;
+    }
+
+    // Connect to MongoDB
+    await mongoose.connect(uri, {
+      useNewUrlParser: true,
+      useUnifiedTopology: true
+    });
     
-    return true;
-  } catch (atlasError) {
-    console.error('MongoDB Atlas connection error:', atlasError.message);
+    console.log('Connected to MongoDB Atlas');
     
     try {
-      console.log('Attempting to connect to local MongoDB...');
-      await mongoose.connect(localUri);
-      console.log('Connected to local MongoDB successfully');
+      // Initialize models and data
+      const Comment = require('./models/Comment');
+      console.log('Comment model initialized.');
       
-      // Initialize database with sample data if empty
+      // Initialize News model
+      const News = require('./models/News');
+      const League = require('./models/League');
+      
+      // Check if database is empty and populate with data if needed
       const newsController = require('./controllers/newsController');
-      await newsController.checkAndPopulateNews();
+      const newsCount = await News.countDocuments();
+      console.log(`Database has ${newsCount} articles`);
+      
+      if (newsCount === 0) {
+        console.log('News collection is empty, populating with initial data...');
+        await newsController.checkAndPopulateNews();
+      }
+      
+      // Initialize leagues data if empty
+      const leagueController = require('./controllers/leagueController');
+      const leaguesCount = await League.countDocuments();
+      console.log(`Database has ${leaguesCount} leagues`);
+      
+      if (leaguesCount === 0) {
+        console.log('Leagues collection is empty, populating with initial data...');
+        await leagueController.checkAndPopulateLeagues();
+      }
+      
+      // Initialize Redis caches
+      const leagueCache = require('./utils/leagueCache');
+      const newsCache = require('./utils/newsCache');
+      const userCache = require('./utils/userCache');
+      const matchCache = require('./utils/matchCache');
+      
+      try {
+        // Initialize league cache
+        await leagueCache.initializeCache();
+        
+        // Initialize news cache
+        await newsCache.initializeCache();
+        
+        // Initialize user cache
+        await userCache.initializeCache();
+        
+        // Initialize match cache
+        await matchCache.initializeCache();
+      } catch (cacheError) {
+        console.error('Error initializing Redis cache:', cacheError);
+        console.warn('WARNING: Redis caching may be limited or unavailable');
+      }
       
       return true;
     } catch (localError) {
-      console.error('Local MongoDB connection error:', localError.message);
-      console.warn('WARNING: Application running without database - functionality will be limited');
+      console.error('Error initializing data:', localError.message);
+      console.warn('WARNING: Application running with limited functionality');
       return false;
     }
+  } catch (error) {
+    console.error('MongoDB connection error:', error.message);
+    return false;
   }
 }
 
 // Connect to database before starting server
 connectToDatabase().then(async (connected) => {
-  // Start server first so users can access the site immediately
-  const PORT = process.env.PORT || 3000;
-  const server = app.listen(PORT, () => {
-    console.log(`Server running on port ${PORT}${connected ? ' with database connection' : ' (without database connection)'}`);
-  });
-  
+  try {
+    // Start server first so users can access the site immediately
+    const PORT = process.env.PORT || 3000;
+    const server = app.listen(PORT, () => {
+      console.log(`Server running on port ${PORT}${connected ? ' with database connection' : ' (without database connection)'}`);
+    });
+  } catch (err) {
+    console.error('Error during server startup:', err);
+  }
 }).catch(err => {
   console.error('Failed to initialize database connection:', err);
   console.log('Starting server without database connection...');

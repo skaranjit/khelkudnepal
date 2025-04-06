@@ -84,7 +84,7 @@ const LeagueSchema = new mongoose.Schema({
   category: {
     type: String,
     required: [true, 'Please add a category'],
-    enum: ['Cricket', 'Football', 'Basketball', 'Volleyball', 'Other']
+    enum: ['cricket', 'football', 'basketball', 'volleyball', 'othersports']
   },
   logo: {
     type: String,

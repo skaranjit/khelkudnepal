@@ -14,7 +14,8 @@ const {
   addCommentary,
   deleteMatch,
   addUpdate,
-  removeUpdate
+  removeUpdate,
+  getWebUpdates
 } = require('../controllers/matchController');
 const { protect, authorize } = require('../middleware/auth');
 
@@ -25,6 +26,7 @@ router.get('/live', getLiveMatches);
 router.get('/upcoming', getUpcomingMatches);
 router.get('/completed', getCompletedMatches);
 router.get('/:id', getMatchById);
+router.get('/:id/web-updates', getWebUpdates);
 
 // Protected routes (admin only)
 router.post('/', protect, authorize('admin'), createMatch);

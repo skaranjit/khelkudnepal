@@ -1,0 +1,240 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Create Match - Khelkud Nepal</title>
+  <link rel="stylesheet" href="/css/admin.css">
+  <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
+  <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.10.0/font/bootstrap-icons.css">
+  <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/flatpickr/dist/flatpickr.min.css">
+</head>
+<body>
+  <div class="container-fluid">
+    <div class="row">
+      <!-- Sidebar -->
+      <%- include('../partials/sidebar', { active: 'matches' }) %>
+
+      <!-- Main content -->
+      <main class="col-md-9 ms-sm-auto col-lg-10 px-md-4 py-4">
+        <div class="d-flex justify-content-between flex-wrap flex-md-nowrap align-items-center pt-3 pb-2 mb-3 border-bottom">
+          <h1 class="h2">Create New Match</h1>
+          <div class="btn-toolbar mb-2 mb-md-0">
+            <a href="/admin/matches" class="btn btn-sm btn-outline-secondary">
+              <i class="bi bi-arrow-left"></i> Back to Matches
+            </a>
+          </div>
+        </div>
+
+        <!-- Toast container for notifications -->
+        <div class="toast-container position-fixed top-0 end-0 p-3">
+          <div id="toast" class="toast" role="alert" aria-live="assertive" aria-atomic="true">
+            <div class="toast-header">
+              <strong class="me-auto" id="toast-title">Notification</strong>
+              <button type="button" class="btn-close" data-bs-dismiss="toast" aria-label="Close"></button>
+            </div>
+            <div class="toast-body" id="toast-message">
+              Message placeholder
+            </div>
+          </div>
+        </div>
+
+        <% if (locals.error) { %>
+          <div class="alert alert-danger alert-dismissible fade show" role="alert">
+            <%= error %>
+            <button type="button" class="btn-close" data-bs-dismiss="alert" aria-label="Close"></button>
+          </div>
+        <% } %>
+
+        <div class="card">
+          <div class="card-body">
+            <form action="/admin/matches" method="POST">
+              <!-- Match Basic Details -->
+              <div class="row mb-4">
+                <div class="col-md-12">
+                  <h5 class="card-title mb-3">Match Details</h5>
+                </div>
+                
+                <div class="col-md-6 mb-3">
+                  <label for="homeTeamName" class="form-label">Home Team Name *</label>
+                  <input type="text" class="form-control" id="homeTeamName" name="homeTeam[name]" value="<%= match.homeTeam && match.homeTeam.name ? match.homeTeam.name : '' %>" required>
+                </div>
+                
+                <div class="col-md-6 mb-3">
+                  <label for="homeTeamLogo" class="form-label">Home Team Logo URL</label>
+                  <input type="text" class="form-control" id="homeTeamLogo" name="homeTeam[logo]" value="<%= match.homeTeam && match.homeTeam.logo ? match.homeTeam.logo : '' %>">
+                </div>
+                
+                <div class="col-md-6 mb-3">
+                  <label for="awayTeamName" class="form-label">Away Team Name *</label>
+                  <input type="text" class="form-control" id="awayTeamName" name="awayTeam[name]" value="<%= match.awayTeam && match.awayTeam.name ? match.awayTeam.name : '' %>" required>
+                </div>
+                
+                <div class="col-md-6 mb-3">
+                  <label for="awayTeamLogo" class="form-label">Away Team Logo URL</label>
+                  <input type="text" class="form-control" id="awayTeamLogo" name="awayTeam[logo]" value="<%= match.awayTeam && match.awayTeam.logo ? match.awayTeam.logo : '' %>">
+                </div>
+                
+                <div class="col-md-6 mb-3">
+                  <label for="category" class="form-label">Category *</label>
+                  <select class="form-select" id="category" name="category" required>
+                    <option value="" disabled selected>Select category</option>
+                    <option value="cricket">Cricket</option>
+                    <option value="football">Football</option>
+                    <option value="basketball">Basketball</option>
+                    <option value="volleyball">Volleyball</option>
+                    <option value="othersports">Other Sports</option>
+                  </select>
+                </div>
+                
+                <div class="col-md-6 mb-3">
+                  <label for="status" class="form-label">Status *</label>
+                  <select class="form-select" id="status" name="status" required>
+                    <option value="scheduled" <%= match.status === 'scheduled' ? 'selected' : '' %>>Scheduled</option>
+                    <option value="live" <%= match.status === 'live' ? 'selected' : '' %>>Live</option>
+                    <option value="completed" <%= match.status === 'completed' ? 'selected' : '' %>>Completed</option>
+                    <option value="postponed" <%= match.status === 'postponed' ? 'selected' : '' %>>Postponed</option>
+                    <option value="cancelled" <%= match.status === 'cancelled' ? 'selected' : '' %>>Cancelled</option>
+                  </select>
+                </div>
+                
+                <div class="col-md-6 mb-3">
+                  <label for="startTime" class="form-label">Start Time *</label>
+                  <input type="datetime-local" class="form-control" id="startTime" name="startTime" value="<%= match.startTime ? new Date(match.startTime).toISOString().slice(0, 16) : '' %>" required>
+                </div>
+                
+                <div class="col-md-6 mb-3">
+                  <label for="endTime" class="form-label">End Time</label>
+                  <input type="datetime-local" class="form-control" id="endTime" name="endTime" value="<%= match.endTime ? new Date(match.endTime).toISOString().slice(0, 16) : '' %>">
+                </div>
+              </div>
+              
+              <!-- Additional Information -->
+              <div class="row mb-4">
+                <div class="col-md-12">
+                  <h5 class="card-title mb-3">Additional Information</h5>
+                </div>
+                
+                <div class="col-md-6 mb-3">
+                  <label for="tournament" class="form-label">Tournament</label>
+                  <input type="text" class="form-control" id="tournament" name="tournament" value="<%= match.tournament || '' %>">
+                </div>
+                
+                <div class="col-md-6 mb-3">
+                  <label for="round" class="form-label">Round/Stage</label>
+                  <input type="text" class="form-control" id="round" name="round" value="<%= match.round || '' %>">
+                </div>
+                
+                <div class="col-md-6 mb-3">
+                  <label for="venueName" class="form-label">Venue Name</label>
+                  <input type="text" class="form-control" id="venueName" name="venueName" value="<%= match.venue?.name || '' %>">
+                </div>
+                
+                <div class="col-md-6 mb-3">
+                  <label for="venueLocation" class="form-label">Venue Location</label>
+                  <input type="text" class="form-control" id="venueLocation" name="venueLocation" value="<%= match.venue?.location || '' %>">
+                </div>
+                
+                <div class="col-md-12 mb-3">
+                  <label for="imageUrl" class="form-label">Match Image URL</label>
+                  <input type="url" class="form-control" id="imageUrl" name="imageUrl" value="<%= match.imageUrl || '' %>">
+                  <div class="form-text">Optional image URL for the match</div>
+                </div>
+              </div>
+              
+              <!-- Score (if live/completed) -->
+              <div class="row mb-4" id="score-section">
+                <div class="col-md-12">
+                  <h5 class="card-title mb-3">Score</h5>
+                </div>
+                
+                <div class="col-md-6 mb-3">
+                  <label for="homeScore" class="form-label">Home Team Score</label>
+                  <input type="number" class="form-control" id="homeScore" name="homeScore" value="<%= match.homeScore || 0 %>" min="0">
+                </div>
+                
+                <div class="col-md-6 mb-3">
+                  <label for="awayScore" class="form-label">Away Team Score</label>
+                  <input type="number" class="form-control" id="awayScore" name="awayScore" value="<%= match.awayScore || 0 %>" min="0">
+                </div>
+              </div>
+              
+              <div class="d-grid gap-2 d-md-flex justify-content-md-end">
+                <a href="/admin/matches" class="btn btn-light me-md-2">Cancel</a>
+                <button type="submit" class="btn btn-primary">Create Match</button>
+              </div>
+            </form>
+          </div>
+        </div>
+      </main>
+    </div>
+  </div>
+
+  <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
+  <script src="https://cdn.jsdelivr.net/npm/flatpickr"></script>
+  <script>
+    document.addEventListener('DOMContentLoaded', function() {
+      // Initialize datetime pickers
+      flatpickr("#startTime", {
+        enableTime: true,
+        dateFormat: "Y-m-d H:i",
+      });
+      
+      flatpickr("#endTime", {
+        enableTime: true,
+        dateFormat: "Y-m-d H:i",
+      });
+      
+      // Show/hide score section based on status
+      const statusSelect = document.getElementById('status');
+      const scoreSection = document.getElementById('score-section');
+      
+      function toggleScoreSection() {
+        if (statusSelect.value === 'live' || statusSelect.value === 'completed') {
+          scoreSection.style.display = 'flex';
+        } else {
+          scoreSection.style.display = 'none';
+        }
+      }
+      
+      statusSelect.addEventListener('change', toggleScoreSection);
+      toggleScoreSection(); // Initial check
+      
+      // Show toast function
+      function showToast(title, message, isError = false) {
+        const toast = document.getElementById('toast');
+        const toastTitle = document.getElementById('toast-title');
+        const toastMessage = document.getElementById('toast-message');
+        
+        if (toast && toastTitle && toastMessage) {
+          toastTitle.textContent = title;
+          toastMessage.textContent = message;
+          
+          // Remove previous classes
+          toast.classList.remove('bg-success', 'bg-danger', 'text-white');
+          
+          if (isError) {
+            toast.classList.add('bg-danger', 'text-white');
+          } else {
+            toast.classList.add('bg-success', 'text-white');
+          }
+          
+          const bsToast = new bootstrap.Toast(toast);
+          bsToast.show();
+        }
+      }
+      
+      // Check for URL parameters for success/error messages
+      const urlParams = new URLSearchParams(window.location.search);
+      const successMsg = urlParams.get('success');
+      const errorMsg = urlParams.get('error');
+      
+      if (successMsg) {
+        showToast('Success', decodeURIComponent(successMsg));
+      } else if (errorMsg) {
+        showToast('Error', decodeURIComponent(errorMsg), true);
+      }
+    });
+  </script>
+</body>
+</html> 

@@ -1,0 +1,220 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <%- include('../partials/head') %>
+  <title><%= title %></title>
+  <style>
+    .team-logo {
+      height: 40px;
+      width: 40px;
+      object-fit: contain;
+    }
+    .standings-header {
+      background-color: #f8f9fa;
+    }
+    .table-team {
+      min-width: 200px;
+    }
+    .league-header {
+      background-size: cover;
+      background-position: center;
+      padding: 60px 0;
+      position: relative;
+      color: white;
+    }
+    .league-header::before {
+      content: '';
+      position: absolute;
+      top: 0;
+      left: 0;
+      width: 100%;
+      height: 100%;
+      background-color: rgba(0, 0, 0, 0.7);
+      z-index: 1;
+    }
+    .league-header-content {
+      position: relative;
+      z-index: 2;
+    }
+    .league-logo {
+      height: 100px;
+      width: auto;
+      max-width: 100%;
+      object-fit: contain;
+      background-color: rgba(255, 255, 255, 0.9);
+      border-radius: 10px;
+      padding: 10px;
+    }
+    .position-indicator {
+      display: inline-block;
+      width: 24px;
+      height: 24px;
+      line-height: 24px;
+      text-align: center;
+      border-radius: 50%;
+      margin-right: 8px;
+    }
+    .position-top {
+      background-color: #198754;
+      color: white;
+    }
+    .position-middle {
+      background-color: #0d6efd;
+      color: white;
+    }
+    .position-bottom {
+      background-color: #dc3545;
+      color: white;
+    }
+  </style>
+</head>
+<body>
+  <%- include('../partials/header') %>
+
+  <!-- League Header -->
+  <div class="league-header mb-4" style="background-image: url('/images/league-bg.jpg');">
+    <div class="container league-header-content">
+      <div class="row align-items-center">
+        <div class="col-md-3 text-center">
+          <% if (league.logo) { %>
+            <img src="<%= league.logo %>" alt="<%= league.name %>" class="league-logo mb-3">
+          <% } else { %>
+            <div class="bg-light d-flex justify-content-center align-items-center rounded" style="width: 100%; height: 100px;">
+              <span class="text-dark">No Logo</span>
+            </div>
+          <% } %>
+        </div>
+        <div class="col-md-9">
+          <h1><%= league.name %></h1>
+          <div class="d-flex flex-wrap align-items-center mb-2">
+            <span class="badge bg-info me-2"><%= league.category.charAt(0).toUpperCase() + league.category.slice(1) %></span>
+            <% if (league.status === 'upcoming') { %>
+              <span class="badge bg-warning text-dark me-2">Upcoming</span>
+            <% } else if (league.status === 'ongoing') { %>
+              <span class="badge bg-success me-2">Ongoing</span>
+            <% } else if (league.status === 'completed') { %>
+              <span class="badge bg-secondary me-2">Completed</span>
+            <% } %>
+            <span class="text-light"><%= league.season %></span>
+          </div>
+          <p class="mb-0 text-light">
+            <%= league.teams.length %> teams competing
+          </p>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <div class="container mb-5">
+    <div class="row">
+      <div class="col-12">
+        <ul class="nav nav-tabs mb-4">
+          <li class="nav-item">
+            <a class="nav-link active" href="#standings">Standings</a>
+          </li>
+          <!-- Additional tabs can be added here -->
+        </ul>
+        
+        <div class="tab-content">
+          <div class="tab-pane active" id="standings">
+            <% if (standings && standings.length > 0) { %>
+              <div class="table-responsive">
+                <table class="table table-hover">
+                  <thead class="standings-header">
+                    <tr>
+                      <th style="width: 50px">Pos</th>
+                      <th class="table-team">Team</th>
+                      <th>P</th>
+                      <th>W</th>
+                      <th>D</th>
+                      <th>L</th>
+                      <th>GF</th>
+                      <th>GA</th>
+                      <th>GD</th>
+                      <th>Pts</th>
+                    </tr>
+                  </thead>
+                  <tbody>
+                    <% standings.forEach((team, index) => { 
+                      // Determine position indicator class
+                      let positionClass = "";
+                      if (index < 3) {
+                        positionClass = "position-top";
+                      } else if (index >= standings.length - 3 && standings.length > 6) {
+                        positionClass = "position-bottom";
+                      } else {
+                        positionClass = "position-middle";
+                      }
+                    %>
+                      <tr>
+                        <td>
+                          <span class="position-indicator <%= positionClass %>"><%= index + 1 %></span>
+                        </td>
+                        <td class="table-team">
+                          <div class="d-flex align-items-center">
+                            <% if (team.logo) { %>
+                              <img src="<%= team.logo %>" alt="<%= team.name %>" class="team-logo me-2">
+                            <% } else { %>
+                              <div class="bg-light d-flex justify-content-center align-items-center rounded me-2" style="width: 40px; height: 40px;">
+                                <span class="text-muted small"><%= team.name.substring(0, 2).toUpperCase() %></span>
+                              </div>
+                            <% } %>
+                            <span><%= team.name %></span>
+                          </div>
+                        </td>
+                        <td><%= team.played || 0 %></td>
+                        <td><%= team.won || 0 %></td>
+                        <td><%= team.drawn || 0 %></td>
+                        <td><%= team.lost || 0 %></td>
+                        <td><%= team.goalsFor || 0 %></td>
+                        <td><%= team.goalsAgainst || 0 %></td>
+                        <td class="<%= ((team.goalsFor || 0) - (team.goalsAgainst || 0)) > 0 ? 'text-success' : ((team.goalsFor || 0) - (team.goalsAgainst || 0)) < 0 ? 'text-danger' : '' %>">
+                          <%= (team.goalsFor || 0) - (team.goalsAgainst || 0) %>
+                        </td>
+                        <td class="fw-bold"><%= team.points || 0 %></td>
+                      </tr>
+                    <% }); %>
+                  </tbody>
+                </table>
+              </div>
+              
+              <div class="mt-4">
+                <h5>Legend</h5>
+                <div class="d-flex flex-wrap gap-3">
+                  <div class="d-flex align-items-center">
+                    <span class="position-indicator position-top">1</span>
+                    <span>Top positions</span>
+                  </div>
+                  <div class="d-flex align-items-center">
+                    <span class="position-indicator position-middle">5</span>
+                    <span>Mid-table</span>
+                  </div>
+                  <% if (standings.length > 6) { %>
+                    <div class="d-flex align-items-center">
+                      <span class="position-indicator position-bottom"><%= standings.length %></span>
+                      <span>Bottom positions</span>
+                    </div>
+                  <% } %>
+                </div>
+              </div>
+            <% } else { %>
+              <div class="alert alert-info">
+                <h4 class="alert-heading">No standings available</h4>
+                <p>There are no teams in this league yet or the standings have not been updated.</p>
+              </div>
+            <% } %>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <%- include('../partials/footer') %>
+
+  <script>
+    document.addEventListener('DOMContentLoaded', function() {
+      // Your JavaScript here if needed
+    });
+  </script>
+</body>
+</html> 

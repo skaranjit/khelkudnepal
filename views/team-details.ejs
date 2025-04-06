@@ -100,6 +100,7 @@
                         </div>
                     </div>
                     <div class="row text-center mt-3">
+                        <% if (league.category.toLowerCase() === 'football') { %>
                         <div class="col-md-4 mb-3">
                             <div class="card">
                                 <div class="card-body">
@@ -116,7 +117,8 @@
                                 </div>
                             </div>
                         </div>
-                        <div class="col-md-4 mb-3">
+                        <% } %>
+                        <div class="col-<%= league.category.toLowerCase() === 'football' ? 'md-4' : 'md-12' %> mb-3">
                             <div class="card bg-primary text-white">
                                 <div class="card-body">
                                     <h6>Points</h6>

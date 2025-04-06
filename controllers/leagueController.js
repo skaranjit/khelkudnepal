@@ -1,17 +1,25 @@
 const League = require('../models/League');
 const News = require('../models/News');
+const leagueCache = require('../utils/leagueCache');
 
 // Get all leagues (with optional category filter)
 exports.getAllLeagues = async (req, res) => {
   try {
     const { category } = req.query;
-    const query = {};
     
+    // If category is specified, get leagues by category
     if (category) {
-      query.category = category;
+      const leagues = await leagueCache.getLeaguesByCategory(category);
+      
+      return res.status(200).json({
+        success: true,
+        count: leagues.length,
+        data: leagues
+      });
     }
     
-    const leagues = await League.find(query).sort({ featured: -1, name: 1 });
+    // Otherwise get all leagues
+    const leagues = await leagueCache.getAllLeagues();
     
     res.status(200).json({
       success: true,
@@ -30,8 +38,7 @@ exports.getAllLeagues = async (req, res) => {
 // Get leagues by category
 exports.getLeaguesByCategory = async (req, res) => {
   try {
-    const leagues = await League.find({ category: req.params.category })
-      .sort({ featured: -1, name: 1 });
+    const leagues = await leagueCache.getLeaguesByCategory(req.params.category);
     
     res.status(200).json({
       success: true,
@@ -50,7 +57,7 @@ exports.getLeaguesByCategory = async (req, res) => {
 // Get single league details
 exports.getLeagueById = async (req, res) => {
   try {
-    const league = await League.findById(req.params.id);
+    const league = await leagueCache.getLeagueById(req.params.id);
     
     if (!league) {
       return res.status(404).json({
@@ -59,12 +66,14 @@ exports.getLeagueById = async (req, res) => {
       });
     }
     
-    // Calculate standings
-    league.calculateStandings();
+    // We need to ensure the league object has the calculateStandings method
+    // Since cached objects don't have methods, create a League instance
+    const leagueModel = new League(league);
+    leagueModel.calculateStandings();
     
     res.status(200).json({
       success: true,
-      data: league
+      data: leagueModel
     });
   } catch (error) {
     console.error('Error fetching league:', error);
@@ -88,7 +97,8 @@ exports.getTeamNews = async (req, res) => {
   try {
     const { leagueId, teamName } = req.params;
     
-    const league = await League.findById(leagueId);
+    // Get league from cache
+    const league = await leagueCache.getLeagueById(leagueId);
     
     if (!league) {
       return res.status(404).json({
@@ -144,26 +154,38 @@ exports.getLeaguesPage = async (req, res) => {
   try {
     console.log('Fetching leagues for page display...');
     
+    // Get all leagues from cache
+    const allLeagues = await leagueCache.getAllLeagues();
+    
     // Get featured leagues for each category
     const categories = ['Cricket', 'Football', 'Basketball', 'Volleyball', 'Other'];
     const featuredLeagues = {};
     
     for (const category of categories) {
-      // Modified to fetch all leagues, not just 'ongoing' ones
-      featuredLeagues[category] = await League.find({ 
-        category
-      }).sort({ featured: -1 }).limit(5);
+      // Filter leagues by category (case-insensitive) and sort by featured flag
+      const categoryLowerCase = category.toLowerCase();
+      featuredLeagues[category] = allLeagues
+        .filter(league => league.category.toLowerCase() === categoryLowerCase)
+        .sort((a, b) => {
+          // Sort by featured flag (true first) then by name
+          if (a.featured === b.featured) {
+            return a.name.localeCompare(b.name);
+          }
+          return a.featured ? -1 : 1;
+        })
+        .slice(0, 5); // Limit to 5 leagues per category
       
       console.log(`Found ${featuredLeagues[category].length} ${category} leagues`);
     }
     
-    console.log('All categories fetched, rendering leagues page');
+    console.log('All categories fetched, rendering leagues page from cache');
     
     res.render('leagues', {
       title: 'Nepali Leagues',
       featuredLeagues,
       categories,
-      activeNav: 'leagues'
+      activeNav: 'leagues',
+      cacheInfo: { enabled: true, timestamp: new Date().toISOString() }
     });
   } catch (error) {
     console.error('Error loading leagues page:', error);
@@ -178,7 +200,8 @@ exports.getLeaguesPage = async (req, res) => {
 // View controller for single league page
 exports.getLeagueDetailsPage = async (req, res) => {
   try {
-    const league = await League.findById(req.params.id);
+    // Get league from cache
+    const league = await leagueCache.getLeagueById(req.params.id);
     
     if (!league) {
       return res.status(404).render('error', {
@@ -188,8 +211,10 @@ exports.getLeagueDetailsPage = async (req, res) => {
       });
     }
     
-    // Calculate standings
-    league.calculateStandings();
+    // We need to ensure the league object has the calculateStandings method
+    // Since cached objects don't have methods, create a League instance
+    const leagueModel = new League(league);
+    leagueModel.calculateStandings();
     
     // Get recent news related to this league
     const leagueNews = await News.find({
@@ -201,9 +226,10 @@ exports.getLeagueDetailsPage = async (req, res) => {
     
     res.render('league-details', {
       title: `${league.name} | ${league.season}`,
-      league,
+      league: leagueModel,
       leagueNews,
-      activeNav: 'leagues'
+      activeNav: 'leagues',
+      cacheInfo: { enabled: true, timestamp: new Date().toISOString() }
     });
   } catch (error) {
     console.error('Error loading league details page:', error);
@@ -229,7 +255,8 @@ exports.getTeamDetailsPage = async (req, res) => {
   try {
     const { leagueId, teamName } = req.params;
     
-    const league = await League.findById(leagueId);
+    // Get league from cache
+    const league = await leagueCache.getLeagueById(leagueId);
     
     if (!league) {
       return res.status(404).render('error', {
@@ -265,7 +292,8 @@ exports.getTeamDetailsPage = async (req, res) => {
       league,
       teamNews,
       teamMatches: [], // This would be populated if you have match data
-      activeNav: 'leagues'
+      activeNav: 'leagues',
+      cacheInfo: { enabled: true, timestamp: new Date().toISOString() }
     });
   } catch (error) {
     console.error('Error loading team details page:', error);
@@ -293,174 +321,18 @@ exports.checkAndPopulateLeagues = async () => {
     const leagueCount = await League.countDocuments();
     
     if (leagueCount === 0) {
-      console.log('No leagues found in database. Adding sample leagues...');
+      console.log('No leagues found in database. Sample data population is disabled.');
       
-      // Sample league data
-      const sampleLeagues = [
-        {
-          name: 'Nepal Premier League',
-          category: 'Football',
-          season: new Date().getFullYear().toString(),
-          startDate: new Date(),
-          endDate: new Date(new Date().setMonth(new Date().getMonth() + 3)),
-          status: 'ongoing',
-          featured: true,
-          description: 'Top football league in Nepal',
-          teams: [
-            {
-              name: 'Kathmandu FC',
-              logo: '/images/default-team-logo.png',
-              location: 'Kathmandu',
-              played: 12,
-              won: 8,
-              drawn: 2,
-              lost: 2,
-              goalsFor: 22,
-              goalsAgainst: 10,
-              points: 26
-            },
-            {
-              name: 'Pokhara United',
-              logo: '/images/default-team-logo.png',
-              location: 'Pokhara',
-              played: 12,
-              won: 7,
-              drawn: 3,
-              lost: 2,
-              goalsFor: 18,
-              goalsAgainst: 9,
-              points: 24
-            },
-            {
-              name: 'Lalitpur City',
-              logo: '/images/default-team-logo.png',
-              location: 'Lalitpur',
-              played: 12,
-              won: 6,
-              drawn: 3,
-              lost: 3,
-              goalsFor: 15,
-              goalsAgainst: 12,
-              points: 21
-            },
-            {
-              name: 'Chitwan Tigers',
-              logo: '/images/default-team-logo.png',
-              location: 'Chitwan',
-              played: 12,
-              won: 5,
-              drawn: 2,
-              lost: 5,
-              goalsFor: 14,
-              goalsAgainst: 16,
-              points: 17
-            }
-          ]
-        },
-        {
-          name: 'Nepal Cricket League',
-          category: 'Cricket',
-          season: new Date().getFullYear().toString(),
-          startDate: new Date(),
-          endDate: new Date(new Date().setMonth(new Date().getMonth() + 3)),
-          status: 'ongoing',
-          featured: true,
-          description: 'Premier cricket competition in Nepal',
-          teams: [
-            {
-              name: 'Kathmandu Kings',
-              logo: '/images/default-team-logo.png',
-              location: 'Kathmandu',
-              played: 10,
-              won: 7,
-              drawn: 1,
-              lost: 2,
-              goalsFor: 0,
-              goalsAgainst: 0,
-              points: 15
-            },
-            {
-              name: 'Pokhara Rhinos',
-              logo: '/images/default-team-logo.png',
-              location: 'Pokhara',
-              played: 10,
-              won: 6,
-              drawn: 0,
-              lost: 4,
-              goalsFor: 0,
-              goalsAgainst: 0,
-              points: 12
-            },
-            {
-              name: 'Bhairahawa Gladiators',
-              logo: '/images/default-team-logo.png',
-              location: 'Bhairahawa',
-              played: 10,
-              won: 5,
-              drawn: 0,
-              lost: 5,
-              goalsFor: 0,
-              goalsAgainst: 0,
-              points: 10
-            }
-          ]
-        },
-        {
-          name: 'Nepal Basketball Association League',
-          category: 'Basketball',
-          season: new Date().getFullYear().toString(),
-          startDate: new Date(),
-          endDate: new Date(new Date().setMonth(new Date().getMonth() + 2)),
-          status: 'ongoing',
-          featured: true,
-          description: 'Top basketball league in Nepal',
-          teams: [
-            {
-              name: 'Kathmandu Bulls',
-              logo: '/images/default-team-logo.png',
-              location: 'Kathmandu',
-              played: 8,
-              won: 6,
-              drawn: 0,
-              lost: 2,
-              goalsFor: 0,
-              goalsAgainst: 0,
-              points: 12
-            },
-            {
-              name: 'Patan Warriors',
-              logo: '/images/default-team-logo.png',
-              location: 'Patan',
-              played: 8,
-              won: 5,
-              drawn: 0,
-              lost: 3,
-              goalsFor: 0,
-              goalsAgainst: 0,
-              points: 10
-            },
-            {
-              name: 'Butwal Riders',
-              logo: '/images/default-team-logo.png',
-              location: 'Butwal',
-              played: 8,
-              won: 3,
-              drawn: 0,
-              lost: 5,
-              goalsFor: 0,
-              goalsAgainst: 0,
-              points: 6
-            }
-          ]
-        }
-      ];
+      // Initialize empty cache
+      await leagueCache.initializeCache();
       
-      // Insert sample leagues
-      await League.insertMany(sampleLeagues);
-      console.log(`Added ${sampleLeagues.length} sample leagues to database`);
       return true;
     } else {
       console.log(`Database already has ${leagueCount} leagues.`);
+      
+      // Initialize the cache with existing data
+      await leagueCache.initializeCache();
+      
       return false;
     }
   } catch (error) {

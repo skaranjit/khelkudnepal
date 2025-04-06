@@ -1,0 +1,140 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <%- include('../partials/head') %>
+  <title><%= title %></title>
+  <style>
+    .league-card {
+      transition: transform 0.3s ease, box-shadow 0.3s ease;
+      height: 100%;
+    }
+    .league-card:hover {
+      transform: translateY(-5px);
+      box-shadow: 0 10px 20px rgba(0, 0, 0, 0.1);
+    }
+    .league-logo {
+      height: 80px;
+      width: auto;
+      max-width: 100%;
+      object-fit: contain;
+    }
+    .league-status {
+      position: absolute;
+      top: 10px;
+      right: 10px;
+    }
+    .category-pill {
+      cursor: pointer;
+      transition: all 0.3s ease;
+    }
+    .category-pill.active {
+      background-color: #0d6efd !important;
+      color: white !important;
+    }
+  </style>
+</head>
+<body>
+  <%- include('../partials/header') %>
+
+  <div class="container mt-4">
+    <div class="row mb-4">
+      <div class="col">
+        <h1 class="h2">Leagues & Standings</h1>
+        <p class="text-muted">Follow your favorite leagues and check out the latest standings</p>
+      </div>
+    </div>
+
+    <!-- Category Filter -->
+    <div class="row mb-4">
+      <div class="col">
+        <div class="d-flex flex-wrap gap-2">
+          <a href="/leagues" class="text-decoration-none">
+            <div class="category-pill px-3 py-2 rounded-pill border <%= activeCategory === 'all' ? 'active' : 'text-dark' %>">
+              All
+            </div>
+          </a>
+          <a href="/leagues?category=cricket" class="text-decoration-none">
+            <div class="category-pill px-3 py-2 rounded-pill border <%= activeCategory === 'cricket' ? 'active' : 'text-dark' %>">
+              Cricket
+            </div>
+          </a>
+          <a href="/leagues?category=football" class="text-decoration-none">
+            <div class="category-pill px-3 py-2 rounded-pill border <%= activeCategory === 'football' ? 'active' : 'text-dark' %>">
+              Football
+            </div>
+          </a>
+          <a href="/leagues?category=basketball" class="text-decoration-none">
+            <div class="category-pill px-3 py-2 rounded-pill border <%= activeCategory === 'basketball' ? 'active' : 'text-dark' %>">
+              Basketball
+            </div>
+          </a>
+          <a href="/leagues?category=volleyball" class="text-decoration-none">
+            <div class="category-pill px-3 py-2 rounded-pill border <%= activeCategory === 'volleyball' ? 'active' : 'text-dark' %>">
+              Volleyball
+            </div>
+          </a>
+          <a href="/leagues?category=othersports" class="text-decoration-none">
+            <div class="category-pill px-3 py-2 rounded-pill border <%= activeCategory === 'othersports' ? 'active' : 'text-dark' %>">
+              Other Sports
+            </div>
+          </a>
+        </div>
+      </div>
+    </div>
+
+    <% if (leagues && leagues.length > 0) { %>
+      <div class="row row-cols-1 row-cols-md-2 row-cols-lg-3 g-4 mb-5">
+        <% leagues.forEach(league => { %>
+          <div class="col">
+            <div class="card league-card h-100 position-relative">
+              <% if (league.status === 'upcoming') { %>
+                <span class="league-status badge bg-warning text-dark">Upcoming</span>
+              <% } else if (league.status === 'ongoing') { %>
+                <span class="league-status badge bg-success">Ongoing</span>
+              <% } else if (league.status === 'completed') { %>
+                <span class="league-status badge bg-secondary">Completed</span>
+              <% } %>
+              
+              <div class="card-body text-center">
+                <div class="mb-3 d-flex justify-content-center align-items-center" style="height: 100px;">
+                  <% if (league.logo) { %>
+                    <img src="<%= league.logo %>" alt="<%= league.name %>" class="league-logo">
+                  <% } else { %>
+                    <div class="bg-light d-flex justify-content-center align-items-center rounded" style="width: 100%; height: 80px;">
+                      <span class="text-muted">No Logo</span>
+                    </div>
+                  <% } %>
+                </div>
+                <h5 class="card-title"><%= league.name %></h5>
+                <p class="card-text text-muted mb-1">
+                  <%= league.season %>
+                </p>
+                <span class="badge bg-info mb-3"><%= league.category.charAt(0).toUpperCase() + league.category.slice(1) %></span>
+                <p class="card-text">
+                  <small class="text-muted"><%= league.teams ? league.teams.length : 0 %> teams</small>
+                </p>
+              </div>
+              <div class="card-footer bg-transparent text-center border-top-0">
+                <a href="/leagues/<%= league._id %>" class="btn btn-primary">View Standings</a>
+              </div>
+            </div>
+          </div>
+        <% }); %>
+      </div>
+    <% } else { %>
+      <div class="alert alert-info">
+        <h4 class="alert-heading">No leagues found</h4>
+        <p>There are no leagues available for this category at the moment.</p>
+      </div>
+    <% } %>
+  </div>
+
+  <%- include('../partials/footer') %>
+
+  <script>
+    document.addEventListener('DOMContentLoaded', function() {
+      // Your JavaScript here if needed
+    });
+  </script>
+</body>
+</html> 

@@ -1,0 +1,738 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title><%= mode === 'create' ? 'Create New League' : 'Edit League' %> - Khelkud Nepal</title>
+  <link rel="stylesheet" href="/css/admin.css">
+  <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
+  <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.10.0/font/bootstrap-icons.css">
+</head>
+<body>
+  <div class="container-fluid">
+    <div class="row">
+      <!-- Sidebar -->
+      <%- include('./partials/sidebar', { active: 'leagues' }) %>
+
+      <!-- Main content -->
+      <main class="col-md-9 ms-sm-auto col-lg-10 px-md-4 py-4">
+        <div class="d-flex justify-content-between flex-wrap flex-md-nowrap align-items-center pt-3 pb-2 mb-3 border-bottom">
+          <h1 class="h2"><%= mode === 'create' ? 'Create New League' : 'Edit League' %></h1>
+          <div class="btn-toolbar mb-2 mb-md-0">
+            <a href="/admin/leagues" class="btn btn-sm btn-outline-secondary">
+              <i class="bi bi-arrow-left"></i> Back to Leagues
+            </a>
+          </div>
+        </div>
+
+        <!-- Toast container for notifications -->
+        <div class="toast-container position-fixed top-0 end-0 p-3">
+          <div id="toast" class="toast" role="alert" aria-live="assertive" aria-atomic="true">
+            <div class="toast-header">
+              <strong class="me-auto" id="toast-title">Notification</strong>
+              <button type="button" class="btn-close" data-bs-dismiss="toast" aria-label="Close"></button>
+            </div>
+            <div class="toast-body" id="toast-message">
+              Message placeholder
+            </div>
+          </div>
+        </div>
+
+        <!-- League form -->
+        <div class="row">
+          <div class="col-md-8">
+            <div class="card">
+              <div class="card-body">
+                <form id="league-form" method="POST" action="<%= mode === 'create' ? '/admin/leagues' : `/admin/leagues/edit/${league._id}` %>">
+                  <!-- League details -->
+                  <div class="mb-4">
+                    <h5 class="card-title mb-3">League Details</h5>
+                    
+                    <div class="mb-3">
+                      <label for="name" class="form-label">League Name *</label>
+                      <input type="text" class="form-control" id="name" name="name" value="<%= league.name || '' %>" required>
+                      <div class="form-text">Enter the official name of the league.</div>
+                    </div>
+                    
+                    <div class="mb-3">
+                      <label for="category" class="form-label">Category *</label>
+                      <select class="form-select" id="category" name="category" required>
+                        <option value="" disabled <%= !league.category ? 'selected' : '' %>>Select category</option>
+                        <option value="cricket" <%= league.category === 'cricket' ? 'selected' : '' %>>Cricket</option>
+                        <option value="football" <%= league.category === 'football' ? 'selected' : '' %>>Football</option>
+                        <option value="basketball" <%= league.category === 'basketball' ? 'selected' : '' %>>Basketball</option>
+                        <option value="volleyball" <%= league.category === 'volleyball' ? 'selected' : '' %>>Volleyball</option>
+                        <option value="othersports" <%= league.category === 'othersports' ? 'selected' : '' %>>Other Sports</option>
+                      </select>
+                    </div>
+                    
+                    <div class="mb-3">
+                      <label for="logo" class="form-label">Logo URL</label>
+                      <input type="url" class="form-control" id="logo" name="logo" value="<%= league.logo || '' %>">
+                      <div class="form-text">URL to the league's logo image.</div>
+                    </div>
+                    
+                    <div class="mb-3">
+                      <label for="season" class="form-label">Season *</label>
+                      <input type="text" class="form-control" id="season" name="season" value="<%= league.season || '' %>" required>
+                      <div class="form-text">E.g., "2023-2024" or "Summer 2023"</div>
+                    </div>
+                    
+                    <div class="mb-3">
+                      <label for="status" class="form-label">Status *</label>
+                      <select class="form-select" id="status" name="status" required>
+                        <option value="upcoming" <%= league.status === 'upcoming' ? 'selected' : '' %>>Upcoming</option>
+                        <option value="ongoing" <%= league.status === 'ongoing' ? 'selected' : '' %>>Ongoing</option>
+                        <option value="completed" <%= league.status === 'completed' ? 'selected' : '' %>>Completed</option>
+                      </select>
+                    </div>
+                    
+                    <div class="form-check mb-3">
+                      <input class="form-check-input" type="checkbox" id="featured" name="featured" <%= league.featured ? 'checked' : '' %>>
+                      <label class="form-check-label" for="featured">
+                        Featured League
+                      </label>
+                      <div class="form-text">Featured leagues will be highlighted on the homepage.</div>
+                    </div>
+                  </div>
+                  
+                  <div class="d-grid">
+                    <button type="submit" class="btn btn-primary">
+                      <%= mode === 'create' ? 'Create League' : 'Update League' %>
+                    </button>
+                  </div>
+                </form>
+              </div>
+            </div>
+          </div>
+          
+          <% if (mode === 'edit' && league._id) { %>
+          <div class="col-md-4">
+            <div class="card mb-4">
+              <div class="card-header">
+                <h5 class="mb-0">Teams</h5>
+              </div>
+              <div class="card-body">
+                <ul class="list-group mb-3" id="teams-list">
+                  <% if (league.teams && league.teams.length > 0) { %>
+                    <% league.teams.forEach((team, index) => { %>
+                      <li class="list-group-item d-flex justify-content-between align-items-center" data-team-index="<%= index %>">
+                        <div>
+                          <strong><%= team.name %></strong>
+                          <div class="text-muted small">P: <%= team.played || 0 %> | W: <%= team.won || 0 %> | D: <%= team.drawn || 0 %> | L: <%= team.lost || 0 %></div>
+                        </div>
+                        <div class="btn-group">
+                          <button type="button" class="btn btn-sm btn-outline-primary edit-team" data-team-index="<%= index %>">
+                            <i class="bi bi-pencil"></i>
+                          </button>
+                          <button type="button" class="btn btn-sm btn-outline-danger remove-team" data-team-index="<%= index %>">
+                            <i class="bi bi-trash"></i>
+                          </button>
+                        </div>
+                      </li>
+                    <% }); %>
+                  <% } else { %>
+                    <li class="list-group-item text-center text-muted">No teams added yet</li>
+                  <% } %>
+                </ul>
+                <button type="button" class="btn btn-sm btn-success w-100" id="add-team-btn">
+                  <i class="bi bi-plus"></i> Add Team
+                </button>
+              </div>
+            </div>
+          </div>
+          <% } %>
+        </div>
+        
+        <% if (mode === 'edit' && league._id) { %>
+        <!-- Team management section appears after league creation -->
+        <div class="mt-4">
+          <div class="d-flex justify-content-between align-items-center mb-3">
+            <h3>Team Management</h3>
+            <button type="button" class="btn btn-success" id="calculate-standings-btn">
+              <i class="bi bi-arrow-repeat"></i> Calculate Standings
+            </button>
+          </div>
+          
+          <div class="row">
+            <div class="col-md-12">
+              <div class="card">
+                <div class="card-header">
+                  <h5 class="mb-0">Standings</h5>
+                </div>
+                <div class="card-body">
+                  <div class="table-responsive">
+                    <table class="table table-striped">
+                      <thead>
+                        <tr>
+                          <th>Pos</th>
+                          <th>Team</th>
+                          <th>P</th>
+                          <th>W</th>
+                          <th>D</th>
+                          <th>L</th>
+                          <th>GF</th>
+                          <th>GA</th>
+                          <th>GD</th>
+                          <th>Pts</th>
+                        </tr>
+                      </thead>
+                      <tbody id="standings-table">
+                        <% if (league.teams && league.teams.length > 0) { %>
+                          <% 
+                            // Sort teams by points, then goal difference, then goals scored
+                            const sortedTeams = [...league.teams].sort((a, b) => {
+                              if (b.points !== a.points) return b.points - a.points;
+                              const aGD = (a.goalsFor || 0) - (a.goalsAgainst || 0);
+                              const bGD = (b.goalsFor || 0) - (b.goalsAgainst || 0);
+                              if (bGD !== aGD) return bGD - aGD;
+                              return (b.goalsFor || 0) - (a.goalsFor || 0);
+                            });
+                          %>
+                          <% sortedTeams.forEach((team, index) => { %>
+                            <tr>
+                              <td><%= index + 1 %></td>
+                              <td><%= team.name %></td>
+                              <td><%= team.played || 0 %></td>
+                              <td><%= team.won || 0 %></td>
+                              <td><%= team.drawn || 0 %></td>
+                              <td><%= team.lost || 0 %></td>
+                              <td><%= team.goalsFor || 0 %></td>
+                              <td><%= team.goalsAgainst || 0 %></td>
+                              <td><%= (team.goalsFor || 0) - (team.goalsAgainst || 0) %></td>
+                              <td><strong><%= team.points || 0 %></strong></td>
+                            </tr>
+                          <% }); %>
+                        <% } else { %>
+                          <tr>
+                            <td colspan="10" class="text-center">No teams added yet</td>
+                          </tr>
+                        <% } %>
+                      </tbody>
+                    </table>
+                  </div>
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
+        <% } %>
+      </main>
+    </div>
+  </div>
+
+  <!-- Team Modal -->
+  <div class="modal fade" id="teamModal" tabindex="-1" aria-labelledby="teamModalLabel" aria-hidden="true">
+    <div class="modal-dialog">
+      <div class="modal-content">
+        <div class="modal-header">
+          <h5 class="modal-title" id="teamModalLabel">Add Team</h5>
+          <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+        </div>
+        <div class="modal-body">
+          <form id="team-form">
+            <input type="hidden" id="team-index" value="">
+            
+            <div class="mb-3">
+              <label for="team-name" class="form-label">Team Name *</label>
+              <input type="text" class="form-control" id="team-name" required>
+            </div>
+            
+            <div class="mb-3">
+              <label for="team-logo" class="form-label">Team Logo URL</label>
+              <input type="url" class="form-control" id="team-logo">
+              <div class="form-text">URL to the team's logo image.</div>
+            </div>
+            
+            <h6 class="mt-4 mb-3">Team Statistics</h6>
+            
+            <div class="row">
+              <div class="col-md-6">
+                <div class="mb-3">
+                  <label for="team-played" class="form-label">Matches Played</label>
+                  <input type="number" class="form-control" id="team-played" min="0" value="0">
+                </div>
+              </div>
+              <div class="col-md-6">
+                <div class="mb-3">
+                  <label for="team-points" class="form-label">Points</label>
+                  <input type="number" class="form-control" id="team-points" min="0" value="0">
+                </div>
+              </div>
+            </div>
+            
+            <div class="row">
+              <div class="col-md-4">
+                <div class="mb-3">
+                  <label for="team-won" class="form-label">Won</label>
+                  <input type="number" class="form-control" id="team-won" min="0" value="0">
+                </div>
+              </div>
+              <div class="col-md-4">
+                <div class="mb-3">
+                  <label for="team-drawn" class="form-label">Drawn</label>
+                  <input type="number" class="form-control" id="team-drawn" min="0" value="0">
+                </div>
+              </div>
+              <div class="col-md-4">
+                <div class="mb-3">
+                  <label for="team-lost" class="form-label">Lost</label>
+                  <input type="number" class="form-control" id="team-lost" min="0" value="0">
+                </div>
+              </div>
+            </div>
+            
+            <div class="row">
+              <div class="col-md-6">
+                <div class="mb-3">
+                  <label for="team-goals-for" class="form-label">Goals For</label>
+                  <input type="number" class="form-control" id="team-goals-for" min="0" value="0">
+                </div>
+              </div>
+              <div class="col-md-6">
+                <div class="mb-3">
+                  <label for="team-goals-against" class="form-label">Goals Against</label>
+                  <input type="number" class="form-control" id="team-goals-against" min="0" value="0">
+                </div>
+              </div>
+            </div>
+          </form>
+        </div>
+        <div class="modal-footer">
+          <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancel</button>
+          <button type="button" class="btn btn-primary" id="save-team-btn">Save Team</button>
+          <button type="button" class="btn btn-success" id="save-and-add-team-btn">Save & Add Another</button>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- Bulk Team Import Modal -->
+  <div class="modal fade" id="bulkTeamModal" tabindex="-1" aria-labelledby="bulkTeamModalLabel" aria-hidden="true">
+    <div class="modal-dialog modal-lg">
+      <div class="modal-content">
+        <div class="modal-header">
+          <h5 class="modal-title" id="bulkTeamModalLabel">Bulk Add Teams</h5>
+          <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+        </div>
+        <div class="modal-body">
+          <p class="text-muted">Enter one team per line in the format: <code>TeamName,Logo URL,Played,Won,Drawn,Lost,GoalsFor,GoalsAgainst,Points</code></p>
+          <p class="text-muted">Only TeamName is required, all other fields are optional. Example:</p>
+          <pre class="bg-light p-2 rounded"><code>Manchester United,https://example.com/mu.png,10,7,2,1,22,8,23
+Liverpool FC,https://example.com/lfc.png,10,6,3,1,18,10,21</code></pre>
+          
+          <form id="bulk-team-form">
+            <div class="mb-3">
+              <label for="bulk-teams" class="form-label">Teams</label>
+              <textarea class="form-control font-monospace" id="bulk-teams" rows="10" placeholder="Team A,https://example.com/logo.png,10,7,2,1,22,8,23"></textarea>
+            </div>
+          </form>
+        </div>
+        <div class="modal-footer">
+          <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancel</button>
+          <button type="button" class="btn btn-primary" id="import-teams-btn">Import Teams</button>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- Delete Team Confirmation Modal -->
+  <div class="modal fade" id="deleteTeamModal" tabindex="-1" aria-labelledby="deleteTeamModalLabel" aria-hidden="true">
+    <div class="modal-dialog">
+      <div class="modal-content">
+        <div class="modal-header bg-danger text-white">
+          <h5 class="modal-title" id="deleteTeamModalLabel">Confirm Delete</h5>
+          <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal" aria-label="Close"></button>
+        </div>
+        <div class="modal-body">
+          <p>Are you sure you want to remove <strong id="team-name-to-delete"></strong> from this league?</p>
+          <p class="text-danger">This action cannot be undone. All team statistics will be lost.</p>
+        </div>
+        <div class="modal-footer">
+          <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancel</button>
+          <button type="button" class="btn btn-danger" id="confirm-delete-team">Delete</button>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
+  <script>
+    document.addEventListener('DOMContentLoaded', function() {
+      // DOM elements
+      const toast = document.getElementById('toast');
+      const toastTitle = document.getElementById('toast-title');
+      const toastMessage = document.getElementById('toast-message');
+      const leagueForm = document.getElementById('league-form');
+      
+      <% if (mode === 'edit' && league._id) { %>
+      // Team related elements
+      const addTeamBtn = document.getElementById('add-team-btn');
+      const teamModal = new bootstrap.Modal(document.getElementById('teamModal'));
+      const teamModalLabel = document.getElementById('teamModalLabel');
+      const teamForm = document.getElementById('team-form');
+      const teamIndex = document.getElementById('team-index');
+      const teamName = document.getElementById('team-name');
+      const teamLogo = document.getElementById('team-logo');
+      const teamPlayed = document.getElementById('team-played');
+      const teamWon = document.getElementById('team-won');
+      const teamDrawn = document.getElementById('team-drawn');
+      const teamLost = document.getElementById('team-lost');
+      const teamGoalsFor = document.getElementById('team-goals-for');
+      const teamGoalsAgainst = document.getElementById('team-goals-against');
+      const teamPoints = document.getElementById('team-points');
+      const saveTeamBtn = document.getElementById('save-team-btn');
+      const saveAndAddTeamBtn = document.getElementById('save-and-add-team-btn');
+      const teamsList = document.getElementById('teams-list');
+      const calculateStandingsBtn = document.getElementById('calculate-standings-btn');
+      const deleteTeamModal = new bootstrap.Modal(document.getElementById('deleteTeamModal'));
+      const teamNameToDelete = document.getElementById('team-name-to-delete');
+      const confirmDeleteTeamBtn = document.getElementById('confirm-delete-team');
+      
+      // Bulk team import elements
+      const bulkTeamModal = new bootstrap.Modal(document.getElementById('bulkTeamModal'));
+      const bulkTeamsTextarea = document.getElementById('bulk-teams');
+      const importTeamsBtn = document.getElementById('import-teams-btn');
+      
+      // Current team to delete
+      let currentTeamIndex = null;
+      
+      // Add "Bulk Add Teams" button next to the "Add Team" button
+      const bulkAddButton = document.createElement('button');
+      bulkAddButton.type = 'button';
+      bulkAddButton.className = 'btn btn-sm btn-primary w-100 mt-2';
+      bulkAddButton.innerHTML = '<i class="bi bi-upload"></i> Bulk Add Teams';
+      bulkAddButton.addEventListener('click', () => bulkTeamModal.show());
+      addTeamBtn.parentNode.insertBefore(bulkAddButton, addTeamBtn.nextSibling);
+      <% } %>
+      
+      // Show toast message
+      function showToast(title, message, isError = false) {
+        toastTitle.textContent = title;
+        toastMessage.textContent = message;
+        
+        // Remove previous classes
+        toast.classList.remove('bg-success', 'bg-danger', 'text-white');
+        
+        if (isError) {
+          toast.classList.add('bg-danger', 'text-white');
+        } else {
+          toast.classList.add('bg-success', 'text-white');
+        }
+        
+        const toastInstance = new bootstrap.Toast(toast);
+        toastInstance.show();
+      }
+      
+      // Check for success/error message from query params
+      const urlParams = new URLSearchParams(window.location.search);
+      const successMsg = urlParams.get('success');
+      const errorMsg = urlParams.get('error');
+      
+      if (successMsg) {
+        showToast('Success', decodeURIComponent(successMsg));
+      } else if (errorMsg) {
+        showToast('Error', decodeURIComponent(errorMsg), true);
+      }
+      
+      <% if (mode === 'edit' && league._id) { %>
+      // Team management functionality
+      
+      // Add team button click
+      addTeamBtn.addEventListener('click', function() {
+        // Reset form
+        teamForm.reset();
+        teamIndex.value = '';
+        teamModalLabel.textContent = 'Add Team';
+        teamModal.show();
+      });
+      
+      // Edit team buttons
+      document.querySelectorAll('.edit-team').forEach(button => {
+        button.addEventListener('click', function() {
+          const index = this.getAttribute('data-team-index');
+          const team = <%= JSON.stringify(league.teams || []) %>[index];
+          
+          // Fill form
+          teamIndex.value = index;
+          teamName.value = team.name || '';
+          teamLogo.value = team.logo || '';
+          teamPlayed.value = team.played || 0;
+          teamWon.value = team.won || 0;
+          teamDrawn.value = team.drawn || 0;
+          teamLost.value = team.lost || 0;
+          teamGoalsFor.value = team.goalsFor || 0;
+          teamGoalsAgainst.value = team.goalsAgainst || 0;
+          teamPoints.value = team.points || 0;
+          
+          teamModalLabel.textContent = 'Edit Team';
+          teamModal.show();
+        });
+      });
+      
+      // Remove team buttons
+      document.querySelectorAll('.remove-team').forEach(button => {
+        button.addEventListener('click', function() {
+          const index = this.getAttribute('data-team-index');
+          const team = <%= JSON.stringify(league.teams || []) %>[index];
+          
+          currentTeamIndex = index;
+          teamNameToDelete.textContent = team.name;
+          
+          deleteTeamModal.show();
+        });
+      });
+      
+      // Save team function using XMLHttpRequest as an alternative to fetch
+      function saveTeamXHR(closeModal = true) {
+        if (!teamName.value.trim()) {
+          alert('Team name is required');
+          return false;
+        }
+        
+        const index = teamIndex.value;
+        const teamData = {
+          name: teamName.value.trim(),
+          logo: teamLogo.value.trim(),
+          played: parseInt(teamPlayed.value) || 0,
+          won: parseInt(teamWon.value) || 0,
+          drawn: parseInt(teamDrawn.value) || 0,
+          lost: parseInt(teamLost.value) || 0,
+          goalsFor: parseInt(teamGoalsFor.value) || 0,
+          goalsAgainst: parseInt(teamGoalsAgainst.value) || 0,
+          points: parseInt(teamPoints.value) || 0
+        };
+        
+        console.log('XHR: Sending team data:', teamData);
+        
+        let url;
+        if (index === '') {
+          // Add new team
+          url = `/admin/leagues/<%= league._id %>/teams`;
+        } else {
+          // Update existing team
+          url = `/admin/leagues/<%= league._id %>/teams/${index}`;
+        }
+        
+        console.log('XHR: Request URL:', url);
+        
+        const xhr = new XMLHttpRequest();
+        xhr.open('POST', url, true);
+        xhr.setRequestHeader('Content-Type', 'application/json');
+        
+        xhr.onload = function() {
+          if (xhr.status >= 200 && xhr.status < 300) {
+            console.log('XHR: Response:', xhr.responseText);
+            const data = JSON.parse(xhr.responseText);
+            
+            if (data.success) {
+              showToast('Success', index === '' ? 'Team added successfully' : 'Team updated successfully');
+              
+              if (closeModal) {
+                teamModal.hide();
+                // Reload the page to show updated teams
+                window.location.reload();
+              } else {
+                // Clear form for adding another team
+                teamForm.reset();
+                teamIndex.value = '';
+                teamName.focus();
+              }
+            } else {
+              showToast('Error', data.message || 'Failed to save team', true);
+              console.error('XHR: Server error:', data.message);
+              if (closeModal) {
+                teamModal.hide();
+              }
+            }
+          } else {
+            console.error('XHR: Request failed with status', xhr.status);
+            showToast('Error', 'Failed to save team', true);
+            if (closeModal) {
+              teamModal.hide();
+            }
+          }
+        };
+        
+        xhr.onerror = function() {
+          console.error('XHR: Network error occurred');
+          showToast('Error', 'Network error occurred', true);
+          if (closeModal) {
+            teamModal.hide();
+          }
+        };
+        
+        xhr.send(JSON.stringify(teamData));
+        return true;
+      }
+      
+      // Use the XMLHttpRequest version instead of fetch for team saving
+      saveTeamBtn.addEventListener('click', function() {
+        saveTeamXHR(true);
+      });
+      
+      saveAndAddTeamBtn.addEventListener('click', function() {
+        saveTeamXHR(false);
+      });
+      
+      // Import teams button click
+      importTeamsBtn.addEventListener('click', async function() {
+        const teamsText = bulkTeamsTextarea.value.trim();
+        
+        if (!teamsText) {
+          alert('Please enter at least one team');
+          return;
+        }
+        
+        const teamLines = teamsText.split('\n');
+        const teams = [];
+        
+        // Parse each line
+        for (const line of teamLines) {
+          const parts = line.split(',');
+          
+          if (!parts[0] || !parts[0].trim()) {
+            continue; // Skip empty team names
+          }
+          
+          // Make sure we're sending a plain string for the name, not an object
+          const teamName = parts[0].trim();
+          // If the name appears to be an object in string format, extract the actual name
+          const nameValue = getNameFromObjectIfNeeded(teamName);
+          
+          const team = {
+            name: nameValue,
+            logo: parts[1] ? parts[1].trim() : '',
+            played: parseInt(parts[2]) || 0,
+            won: parseInt(parts[3]) || 0,
+            drawn: parseInt(parts[4]) || 0,
+            lost: parseInt(parts[5]) || 0,
+            goalsFor: parseInt(parts[6]) || 0,
+            goalsAgainst: parseInt(parts[7]) || 0,
+            points: parseInt(parts[8]) || 0
+          };
+          
+          teams.push(team);
+        }
+        
+        // Helper function to extract name from object string if needed
+        function getNameFromObjectIfNeeded(nameStr) {
+          if (typeof nameStr !== 'string') return nameStr;
+          
+          // Check if it looks like a stringified object with a name property
+          if (nameStr.includes('name:') || nameStr.includes('"name":') || nameStr.includes("'name':")) {
+            try {
+              // Try to extract name using regex
+              const nameMatch = nameStr.match(/name['"]?\s*:\s*['"]([^'"]+)['"]/i);
+              if (nameMatch && nameMatch[1]) {
+                return nameMatch[1].trim();
+              }
+              
+              // If we have a properly formatted JSON object, try to parse it
+              if (nameStr.startsWith('{') && nameStr.endsWith('}')) {
+                const obj = JSON.parse(nameStr);
+                if (obj && obj.name) {
+                  return obj.name;
+                }
+              }
+            } catch (e) {
+              console.error('Error parsing object-like name string:', e);
+            }
+          }
+          
+          return nameStr;
+        }
+        
+        if (teams.length === 0) {
+          alert('Please enter at least one valid team');
+          return;
+        }
+        
+        try {
+          // Add multiple teams at once
+          const response = await fetch(`/admin/leagues/<%= league._id %>/teams/bulk`, {
+            method: 'POST',
+            headers: {
+              'Content-Type': 'application/json'
+            },
+            body: JSON.stringify({ teams })
+          });
+          
+          const data = await response.json();
+          
+          if (data.success) {
+            showToast('Success', `${teams.length} teams added successfully`);
+            bulkTeamModal.hide();
+            
+            // Reload the page to show updated teams
+            window.location.reload();
+          } else {
+            showToast('Error', data.message || 'Failed to import teams', true);
+          }
+        } catch (error) {
+          console.error('Error importing teams:', error);
+          showToast('Error', 'Failed to import teams', true);
+        }
+      });
+      
+      // Confirm delete team
+      confirmDeleteTeamBtn.addEventListener('click', async function() {
+        if (currentTeamIndex === null) return;
+        
+        try {
+          const response = await fetch(`/admin/leagues/<%= league._id %>/teams/${currentTeamIndex}/remove`, {
+            method: 'POST',
+            headers: {
+              'Content-Type': 'application/json'
+            }
+          });
+          
+          const data = await response.json();
+          
+          if (data.success) {
+            showToast('Success', 'Team removed successfully');
+            
+            // Reload the page to show updated teams
+            window.location.reload();
+          } else {
+            showToast('Error', data.message || 'Failed to remove team', true);
+          }
+          
+          deleteTeamModal.hide();
+        } catch (error) {
+          console.error('Error removing team:', error);
+          showToast('Error', 'Failed to remove team', true);
+          deleteTeamModal.hide();
+        }
+      });
+      
+      // Calculate standings
+      calculateStandingsBtn.addEventListener('click', async function() {
+        try {
+          const response = await fetch(`/admin/leagues/<%= league._id %>/calculate-standings`, {
+            method: 'POST',
+            headers: {
+              'Content-Type': 'application/json'
+            }
+          });
+          
+          const data = await response.json();
+          
+          if (data.success) {
+            showToast('Success', 'Standings calculated successfully');
+            
+            // Reload the page to show updated standings
+            window.location.reload();
+          } else {
+            showToast('Error', data.message || 'Failed to calculate standings', true);
+          }
+        } catch (error) {
+          console.error('Error calculating standings:', error);
+          showToast('Error', 'Failed to calculate standings', true);
+        }
+      });
+      <% } %>
+    });
+  </script>
+</body>
+</html> 

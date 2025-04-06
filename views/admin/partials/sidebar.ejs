@@ -14,9 +14,27 @@
         </a>
       </li>
       <li class="nav-item">
+        <a class="nav-link <%= locals.active === 'leagues' ? 'active' : '' %>" href="/admin/leagues">
+          <i class="bi bi-trophy me-2"></i>
+          Leagues Management
+        </a>
+      </li>
+      <li class="nav-item">
+        <a class="nav-link <%= locals.active === 'matches' ? 'active' : '' %>" href="/admin/matches">
+          <i class="bi bi-calendar-event me-2"></i>
+          Matches
+        </a>
+      </li>
+      <li class="nav-item">
         <a class="nav-link <%= locals.active === 'subscriptions' ? 'active' : '' %>" href="/admin/subscriptions">
           <i class="bi bi-envelope me-2"></i>
           Subscriptions
+        </a>
+      </li>
+      <li class="nav-item">
+        <a class="nav-link <%= locals.active === 'system' ? 'active' : '' %>" href="/admin/system">
+          <i class="bi bi-gear me-2"></i>
+          System
         </a>
       </li>
     </ul>
@@ -29,6 +47,12 @@
         <a class="nav-link" href="/admin/news/create">
           <i class="bi bi-plus-circle me-2"></i>
           Create Article
+        </a>
+      </li>
+      <li class="nav-item">
+        <a class="nav-link" href="/admin/leagues/create">
+          <i class="bi bi-plus-circle me-2"></i>
+          Create League
         </a>
       </li>
       <li class="nav-item">

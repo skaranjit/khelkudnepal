@@ -20,7 +20,10 @@ const NewsSchema = new Schema({
   category: {
     type: String,
     required: [true, 'Please specify a category'],
-    enum: ['Cricket', 'Football', 'Basketball', 'Volleyball', 'Tennis', 'Athletics', 'Olympics', 'Other'],
+    enum: ['Cricket', 'Football', 'Basketball', 'Volleyball', 'Tennis', 'Athletics', 'Olympics', 'Other', 
+           'cricket', 'football', 'basketball', 'volleyball', 'tennis', 'athletics', 'olympics', 'other',
+           'badminton', 'Badminton', 'Table Tennis', 'table tennis', 'Golf', 'golf', 'Swimming', 'swimming',
+           'Other_sports', 'other_sports'],
     default: 'Other'
   },
   source: {

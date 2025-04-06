@@ -7,7 +7,7 @@ exports.getAllMatches = async (req, res) => {
         const { category, status } = req.query;
         const query = {};
 
-        if (category) query.category = category;
+        if (category) query.category = new RegExp(`^${category}$`, 'i');
         if (status) query.status = status;
 
         const matches = await Match.find(query)
@@ -31,7 +31,9 @@ exports.getAllMatches = async (req, res) => {
 // Get matches by category
 exports.getMatchesByCategory = async (req, res) => {
     try {
-        const matches = await Match.find({ category: req.params.category })
+        // Use case-insensitive regex for category matching
+        const categoryRegex = new RegExp(`^${req.params.category}$`, 'i');
+        const matches = await Match.find({ category: categoryRegex })
             .sort({ startTime: -1 })
             .limit(20);
 
@@ -55,9 +57,9 @@ exports.getLiveMatches = async (req, res) => {
         const { category } = req.query;
         const query = { status: 'live' };
         
-        // Add category filter if provided
+        // Add category filter if provided - use case-insensitive regex
         if (category) {
-            query.category = category;
+            query.category = new RegExp(`^${category}$`, 'i');
         }
         
         console.log('Live matches query:', query);
@@ -88,9 +90,9 @@ exports.getUpcomingMatches = async (req, res) => {
             startTime: { $gt: new Date() }
         };
         
-        // Add category filter if provided
+        // Add category filter if provided - use case-insensitive regex
         if (category) {
-            query.category = category;
+            query.category = new RegExp(`^${category}$`, 'i');
         }
         
         console.log('Upcoming matches query:', query);
@@ -119,9 +121,9 @@ exports.getCompletedMatches = async (req, res) => {
         const { category, limit = 20 } = req.query;
         const query = { status: 'completed' };
         
-        // Add category filter if provided
+        // Add category filter if provided - use case-insensitive regex
         if (category) {
-            query.category = category;
+            query.category = new RegExp(`^${category}$`, 'i');
         }
         
         console.log('Completed matches query:', query);
@@ -156,28 +158,56 @@ exports.getMatchById = async (req, res) => {
             });
         }
         
-        // For cricket matches, calculate target runs and remaining overs
-        if (match.category === 'Cricket' && match.status === 'live' && match.innings && match.innings.length > 1) {
-            const firstInnings = match.innings[0];
-            const secondInnings = match.innings[1];
-            
-            // Calculate target runs
-            match.targetRuns = firstInnings.runs + 1;
-            
-            // Calculate remaining runs
-            match.remainingRuns = match.targetRuns - secondInnings.runs;
-            
-            // Calculate remaining overs
-            const maxOvers = 50; // Assuming ODI format
-            const completedOvers = secondInnings.overs;
-            const completedFullOvers = Math.floor(completedOvers);
-            const partialOverBalls = (completedOvers - completedFullOvers) * 6;
-            
-            const totalRemainingBalls = (maxOvers - completedFullOvers) * 6 - partialOverBalls;
-            const remainingFullOvers = Math.floor(totalRemainingBalls / 6);
-            const remainingBalls = totalRemainingBalls % 6;
-            
-            match.remainingOvers = remainingFullOvers + (remainingBalls / 10); // Format as 14.3 for 14 overs and 3 balls
+        // For cricket matches, add additional details
+        if (match.category.toLowerCase() === 'cricket' && match.status === 'live') {
+            // If using the new cricket stats structure
+            if (match.stats && match.stats.home && match.stats.away) {
+                // Calculate required runs if second innings is in progress
+                if (match.stats.away.runs > 0) {
+                    match.targetRuns = match.stats.home.runs + 1;
+                    match.remainingRuns = match.targetRuns - match.stats.away.runs;
+                    
+                    // Calculate remaining overs if format is available
+                    if (match.overs && match.stats.away.overs) {
+                        const maxOvers = match.overs; 
+                        const completedOversStr = match.stats.away.overs;
+                        
+                        // Parse over string like "39.4"
+                        const parts = completedOversStr.split('.');
+                        const completedFullOvers = parseInt(parts[0]);
+                        const partialOverBalls = parts.length > 1 ? parseInt(parts[1]) : 0;
+                        
+                        const totalRemainingBalls = (maxOvers - completedFullOvers) * 6 - partialOverBalls;
+                        const remainingFullOvers = Math.floor(totalRemainingBalls / 6);
+                        const remainingBalls = totalRemainingBalls % 6;
+                        
+                        match.remainingOvers = `${remainingFullOvers}.${remainingBalls}`;
+                    }
+                }
+            }
+            // Legacy innings structure (for backwards compatibility)
+            else if (match.innings && match.innings.length > 1) {
+                const firstInnings = match.innings[0];
+                const secondInnings = match.innings[1];
+                
+                // Calculate target runs
+                match.targetRuns = firstInnings.runs + 1;
+                
+                // Calculate remaining runs
+                match.remainingRuns = match.targetRuns - secondInnings.runs;
+                
+                // Calculate remaining overs
+                const maxOvers = 50; // Assuming ODI format
+                const completedOvers = secondInnings.overs;
+                const completedFullOvers = Math.floor(completedOvers);
+                const partialOverBalls = (completedOvers - completedFullOvers) * 6;
+                
+                const totalRemainingBalls = (maxOvers - completedFullOvers) * 6 - partialOverBalls;
+                const remainingFullOvers = Math.floor(totalRemainingBalls / 6);
+                const remainingBalls = totalRemainingBalls % 6;
+                
+                match.remainingOvers = remainingFullOvers + (remainingBalls / 10); // Format as 14.3 for 14 overs and 3 balls
+            }
         }
         
         res.status(200).json({
@@ -546,6 +576,44 @@ exports.removeUpdate = async (req, res) => {
         });
     } catch (error) {
         console.error('Error removing update:', error);
+        
+        if (error.kind === 'ObjectId') {
+            return res.status(404).json({
+                success: false,
+                error: 'Match not found'
+            });
+        }
+        
+        res.status(500).json({
+            success: false,
+            error: 'Server error'
+        });
+    }
+};
+
+// Get web updates for a match (used for live data updates)
+exports.getWebUpdates = async (req, res) => {
+    try {
+        console.log('Getting web updates for match ID:', req.params.id);
+        const match = await Match.findById(req.params.id);
+        
+        if (!match) {
+            return res.status(404).json({
+                success: false,
+                error: 'Match not found'
+            });
+        }
+        
+        // Return the match updates
+        res.status(200).json({
+            success: true,
+            message: 'Updates retrieved successfully',
+            data: {
+                updates: match.updates || []
+            }
+        });
+    } catch (error) {
+        console.error('Error getting web updates:', error);
         
         if (error.kind === 'ObjectId') {
             return res.status(404).json({
